@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Ops Under Pressure</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on Ops Under Pressure</description>
+    <generator>Hugo</generator>
+    <language>en-US</language>
+    <lastBuildDate>Thu, 04 Jun 2026 12:00:00 -0700</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode</title>
+      <link>http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</guid>
+      <description>A real-world RHEL 5 to Hyper-V migration story covering rescue mode, LVM activation, GRUB cleanup, initrd rebuilds, and Hyper-V driver surprises.</description>
+    </item>
+    <item>
+      <title>About</title>
+      <link>http://localhost:1313/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/about/</guid>
+      <description>&lt;h1 id=&#34;about-ops-under-pressure&#34;&gt;About Ops Under Pressure&lt;/h1&gt;
+&lt;p&gt;Welcome to Ops Under Pressure.&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;m Claudio Lombardo, a Principal IT Infrastructure Engineer supporting enterprise Linux, Windows, cloud platforms, databases, monitoring systems, automation, CI/CD pipelines, and high-availability architectures.&lt;/p&gt;
+&lt;p&gt;This site documents real-world production issues, root causes, lessons learned, and solutions that actually worked.&lt;/p&gt;
+&lt;p&gt;Topics include:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Linux / RHEL&lt;/li&gt;
+&lt;li&gt;Windows&lt;/li&gt;
+&lt;li&gt;AWS&lt;/li&gt;
+&lt;li&gt;Monitoring with Zabbix and Nagios&lt;/li&gt;
+&lt;li&gt;Automation&lt;/li&gt;
+&lt;li&gt;CI/CD&lt;/li&gt;
+&lt;li&gt;Enterprise Troubleshooting&lt;/li&gt;
+&lt;li&gt;AI-SRE&lt;/li&gt;
+&lt;li&gt;Security &amp;amp; Certificates&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The goal is simple:&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

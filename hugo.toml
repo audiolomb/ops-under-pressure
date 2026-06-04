@@ -1,0 +1,29 @@
+baseURL = "https://opsunderpressure.xyz/"
+languageCode = "en-US"
+title = "Ops Under Pressure"
+theme = "PaperMod"
+
+[pagination]
+pagerSize = 10
+
+[params]
+author = "Claudio Lombardo"
+description = "Real-world infrastructure engineering, troubleshooting, automation, monitoring, cloud, and AI-assisted operations."
+ShowReadingTime = true
+ShowCodeCopyButtons = true
+ShowPostNavLinks = true
+ShowBreadCrumbs = true
+ShowShareButtons = true
+defaultTheme = "auto"
+
+[[menu.main]]
+identifier = "posts"
+name = "Posts"
+url = "/posts/"
+weight = 10
+
+[[menu.main]]
+identifier = "about"
+name = "About"
+url = "/about/"
+weight = 20

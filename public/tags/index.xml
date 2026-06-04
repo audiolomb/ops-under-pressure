@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Tags on Ops Under Pressure</title>
+    <link>http://localhost:1313/tags/</link>
+    <description>Recent content in Tags on Ops Under Pressure</description>
+    <generator>Hugo</generator>
+    <language>en-US</language>
+    <lastBuildDate>Thu, 04 Jun 2026 12:00:00 -0700</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Grub</title>
+      <link>http://localhost:1313/tags/grub/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/grub/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Hyper-V</title>
+      <link>http://localhost:1313/tags/hyper-v/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/hyper-v/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Infrastructure</title>
+      <link>http://localhost:1313/tags/infrastructure/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/infrastructure/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Linux</title>
+      <link>http://localhost:1313/tags/linux/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/linux/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Lvm</title>
+      <link>http://localhost:1313/tags/lvm/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/lvm/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Migration</title>
+      <link>http://localhost:1313/tags/migration/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/migration/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Rhel5</title>
+      <link>http://localhost:1313/tags/rhel5/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/rhel5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Sysadmin</title>
+      <link>http://localhost:1313/tags/sysadmin/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/sysadmin/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Virtualization</title>
+      <link>http://localhost:1313/tags/virtualization/</link>
+      <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
+      <guid>http://localhost:1313/tags/virtualization/</guid>
+      <description></description>
+    </item>
+  </channel>
+</rss>
