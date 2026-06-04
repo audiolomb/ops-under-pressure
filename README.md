@@ -7,8 +7,10 @@ Lessons learned while keeping enterprise systems alive.
 ## Topics
 
 - Linux / RHEL
+- Windows
 - AWS
 - Zabbix
+- Nagios
 - Monitoring
 - Automation
 - CI/CD
