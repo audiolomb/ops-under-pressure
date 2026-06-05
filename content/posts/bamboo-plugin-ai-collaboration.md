@@ -8,8 +8,6 @@ description: "JFrog abandoned the Bamboo Artifactory Plugin. Bamboo 9.6 was reac
 draft: false
 ---
 
-# When Two AIs Argued Their Way to a Better Bamboo Plugin
-
 ## The Problem Nobody Wanted
 
 Early in 2026, our team found itself staring at a problem that nobody was particularly excited to own.
