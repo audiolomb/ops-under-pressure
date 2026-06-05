@@ -345,7 +345,3 @@ And honestly?
 Watching two AIs argue over a Java plugin while Bamboo threatened to ruin everyone's week was far more entertaining than rewriting hundreds of pipelines by hand.
 
 I'll call that a win.
-
----
-
-*Claudio Lombardo is a Principal IT Infrastructure Engineer at UC San Diego. This project was completed using a collaborative engineering approach involving Claude (Anthropic), Summer (OpenAI Codex), and a stubborn refusal to rewrite hundreds of Bamboo plans.*
