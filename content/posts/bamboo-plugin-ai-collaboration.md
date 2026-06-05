@@ -300,7 +300,7 @@ The plugin remains open source under the original Apache 2.0 license.
 
 Source code:
 
-https://github.com/audiolomb/bamboo12.1-artifactory-plugin
+[ucsd/bamboo-12.1-LTS-artifactory-plugin](https://github.com/ucsd/bamboo-12.1-LTS-artifactory-plugin/)
 
 Project documentation and downloads:
 
