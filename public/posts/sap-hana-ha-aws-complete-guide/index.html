@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>SAP HANA High Availability on AWS with Pacemaker | Ops Under Pressure</title>
+<meta name="keywords" content="SAP HANA, AWS, Pacemaker, RHEL, High Availability, Corosync, STONITH">
+<meta name="description" content="A complete, sanitized, practical guide for building a SAP HANA High Availability cluster on AWS using Pacemaker, STONITH, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.">
+<meta name="author" content="Claudio Lombardo">
+<link rel="canonical" href="https://opsunderpressure.xyz/posts/sap-hana-ha-aws-complete-guide/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.89ca4972ab5e6aaa05e9a0dae0c4bb64b26585bc79e36f5cf33614eea0283abe.css" integrity="sha256-icpJcqteaqoF6aDa4MS7ZLJlhbx5429c8zYU7qAoOr4=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://opsunderpressure.xyz/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://opsunderpressure.xyz/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://opsunderpressure.xyz/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://opsunderpressure.xyz/apple-touch-icon.png">
+<link rel="mask-icon" href="https://opsunderpressure.xyz/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://opsunderpressure.xyz/posts/sap-hana-ha-aws-complete-guide/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="https://opsunderpressure.xyz/posts/sap-hana-ha-aws-complete-guide/">
+  <meta property="og:site_name" content="Ops Under Pressure">
+  <meta property="og:title" content="SAP HANA High Availability on AWS with Pacemaker">
+  <meta property="og:description" content="A complete, sanitized, practical guide for building a SAP HANA High Availability cluster on AWS using Pacemaker, STONITH, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-06-05T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-06-05T00:00:00+00:00">
+    <meta property="article:tag" content="SAP HANA">
+    <meta property="article:tag" content="AWS">
+    <meta property="article:tag" content="Pacemaker">
+    <meta property="article:tag" content="RHEL">
+    <meta property="article:tag" content="High Availability">
+    <meta property="article:tag" content="Corosync">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SAP HANA High Availability on AWS with Pacemaker">
+  <meta name="twitter:description" content="A complete, sanitized, practical guide for building a SAP HANA High Availability cluster on AWS using Pacemaker, STONITH, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://opsunderpressure.xyz/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "SAP HANA High Availability on AWS with Pacemaker",
+      "item": "https://opsunderpressure.xyz/posts/sap-hana-ha-aws-complete-guide/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "SAP HANA High Availability on AWS with Pacemaker",
+  "name": "SAP HANA High Availability on AWS with Pacemaker",
+  "description": "A complete, sanitized, practical guide for building a SAP HANA High Availability cluster on AWS using Pacemaker, STONITH, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.",
+  "keywords": [
+    "SAP HANA", "AWS", "Pacemaker", "RHEL", "High Availability", "Corosync", "STONITH"
+  ],
+  "articleBody": "SAP HANA High Availability on AWS with Pacemaker Building a production-ready SAP HANA cluster using Pacemaker, AWS-integrated STONITH fencing, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.\nFigure 1 – Overall architecture showing SAP HANA System Replication, overlay IP resources, STONITH fencing, and a dedicated quorum device.\nIntroduction Implementing SAP HANA High Availability on AWS is not particularly difficult.\nImplementing it correctly is.\nMost guides focus on getting SAP HANA System Replication working between two nodes. That is required, of course, but replication alone does not give you a production-ready High Availability design. The cluster also needs to make safe failover decisions, prevent split-brain, move client traffic to the correct node, validate fencing, maintain quorum, and give operators enough visibility to know when a failover is actually safe.\nThis guide walks through a complete SAP HANA High Availability cluster design on AWS using:\nSAP HANA System Replication Red Hat High Availability Add-On Pacemaker Corosync AWS STONITH fencing AWS route-table-based overlay IPs Read/Write and Read-Only client endpoints SAPHanaTopology and SAPHana resource agents SAPHanaSR hooks Corosync QDevice Custom HANA preload readiness validation This is not meant to be a blind copy/paste document. Every environment is different. The values in this guide are sanitized examples. Replace the placeholders with your real AWS resource IDs, SAP SID, instance number, route table ID, overlay IPs, and instance IDs.\nFun fact: I enjoyed this project so much that I ended up writing a song about it. If you’ve ever spent days wrestling with SAP HANA System Replication, Pacemaker constraints, overlay IPs, route tables, fencing, and quorum devices, you’ll understand why finally seeing everything fail over cleanly feels worthy of its own soundtrack.\n🎵 “Heartbit Failover” – Listen here:\nHeartbeat-Failover.mp3\nI can’t guarantee it will help you troubleshoot a split-brain event, but it definitely captures the emotional journey of getting a HANA cluster working properly.\nThe examples use:\nItem Example Value SAP SID HDB SAP Instance Number 00 Primary-capable HANA node hana-node-a Secondary-capable HANA node hana-node-b Quorum host hana-qdevice-01 Cluster name hana-cluster-prod AWS region us-west-2 Read/Write overlay IP 10.10.10.81 Read-Only overlay IP 10.10.10.82 Route table Node A instance ID Node B instance ID AWS CLI profile cluster HANA admin user hdbadm Architecture Overview The cluster uses two SAP HANA nodes and one lightweight quorum node.\nHost Purpose hana-node-a SAP HANA primary or secondary hana-node-b SAP HANA primary or secondary hana-qdevice-01 Corosync QNetd quorum device The HANA nodes run the database and participate in SAP HANA System Replication. The quorum host does not run SAP HANA. Its job is to provide a third vote so the two-node cluster can make deterministic decisions during communication failures.\nThe normal operating state looks like this:\nhana-node-a is promoted and owns the Read/Write overlay IP. hana-node-b is unpromoted and owns the Read-Only overlay IP. Both nodes run SAPHanaTopology. fence_aws is configured and tested. The quorum device contributes the third vote. Custom preload validation reports whether the secondary is ready for takeover. Why AWS Changes the Design In a traditional datacenter, engineers often expect a virtual IP address to move directly between servers.\nAWS does not work that way.\nThere is no normal Layer-2 floating IP behavior between EC2 instances like you might expect in a classic VLAN. Instead, the cluster updates AWS route tables so that traffic for an overlay IP points to the network interface of the node currently owning the resource.\nFigure 2 – AWS route table entries used by the Read/Write and Read-Only overlay IP resources. During failover, Pacemaker updates these routes so traffic automatically follows the active SAP HANA node.\nConceptually:\nClient | Overlay IP | AWS Route Table | Network Interface | Current SAP HANA owner That is why IAM permissions, route table IDs, and Source/Destination Check matter so much. If any of those are wrong, the cluster may look healthy while client traffic goes nowhere. Ask me how I know.\nAssumptions Before Starting This guide assumes:\nSAP HANA is already installed on both HANA nodes. SAP HANA System Replication is already configured or will be configured before cluster takeover is enabled. Both HANA nodes are in the same AWS VPC design that supports the required route-table overlay IP model. The Red Hat High Availability Add-On is available. DNS and /etc/hosts resolution are correct between all cluster nodes. Security groups allow cluster communication. You are using RHEL 9 or a supported RHEL for SAP version. The examples are executed as root unless otherwise noted. Naming and Sanitization Used in This Guide All internal names have been sanitized.\nUse these mappings when adapting the guide:\nSanitized Name Meaning hana-node-a First SAP HANA cluster node hana-node-b Second SAP HANA cluster node hana-qdevice-01 Quorum device host hana-cluster-prod Pacemaker cluster name 10.10.10.81 Read/Write overlay IP 10.10.10.82 Read-Only overlay IP AWS route table used by overlay IPs EC2 instance ID for hana-node-a EC2 instance ID for hana-node-b 1. Prepare AWS IAM Permissions Both HANA nodes need an instance profile that allows the cluster to modify AWS routes and fence peer instances.\nAt minimum, the role needs permissions similar to this:\n{ \"Version\": \"2012-10-17\", \"Statement\": [ { \"Action\": [ \"ec2:Describe*\", \"ec2:ReplaceRoute\", \"ec2:CreateRoute\", \"ec2:DeleteRoute\" ], \"Resource\": \"*\", \"Effect\": \"Allow\" }, { \"Condition\": { \"StringEquals\": { \"ec2:ResourceTag/HanaCluster\": [ \"Prod\" ] } }, \"Action\": [ \"ec2:ModifyInstanceAttribute\", \"ec2:RebootInstances\", \"ec2:StartInstances\", \"ec2:StopInstances\" ], \"Resource\": \"*\", \"Effect\": \"Allow\" } ] } The route permissions are needed by aws-vpc-move-ip.\nThe start, stop, reboot, and modify permissions are needed by fence_aws.\nTag both HANA instances consistently. For example:\nHanaCluster = Prod That lets you scope fencing permissions to only the instances that belong to the cluster.\nDo not skip IAM validation. A lot of AWS cluster problems are not cluster problems at all. They are permission problems wearing a fake mustache.\n2. Disable AWS Source/Destination Check Disable Source/Destination Check on both HANA EC2 instances.\nYou can do this in the AWS console:\nEC2 -\u003e Instances -\u003e Select instance -\u003e Actions -\u003e Networking -\u003e Change source/destination check -\u003e Stop Or with AWS CLI:\naws ec2 modify-instance-attribute \\ --instance-id \\ --no-source-dest-check \\ --region us-west-2 aws ec2 modify-instance-attribute \\ --instance-id \\ --no-source-dest-check \\ --region us-west-2 If Source/Destination Check remains enabled, overlay IP routing will not behave correctly.\n3. Disable AWS Auto Recovery Pacemaker must own the recovery decision.\nDisable AWS Auto Recovery for both HANA nodes:\naws ec2 modify-instance-maintenance-options \\ --instance-id \\ --auto-recovery disabled \\ --region us-west-2 aws ec2 modify-instance-maintenance-options \\ --instance-id \\ --auto-recovery disabled \\ --region us-west-2 You can also do this from the AWS console:\nEC2 -\u003e Instances -\u003e Select instance -\u003e Actions -\u003e Instance settings -\u003e Change auto-recovery behavior The point is simple: do not let AWS Auto Recovery and Pacemaker fight over the same workload.\n4. Disable NetworkManager Cloud Setup On both HANA nodes:\nsystemctl disable nm-cloud-setup.timer systemctl stop nm-cloud-setup.timer systemctl disable nm-cloud-setup systemctl stop nm-cloud-setup This avoids NetworkManager cloud automation interfering with the static network behavior expected by the cluster.\n5. Confirm Host Resolution Add both HANA nodes and the quorum host to /etc/hosts, or make sure DNS resolves them reliably.\nExample:\n10.10.20.10 hana-node-a 10.10.20.11 hana-node-b 10.10.20.12 hana-qdevice-01 Verify from each node:\ngetent hosts hana-node-a getent hosts hana-node-b getent hosts hana-qdevice-01 Make sure you use the same names everywhere.\nIf you create the cluster with short names, use short names in STONITH mappings. If you create the cluster with FQDNs, use FQDNs consistently.\nMixed naming in clusters is the kind of pain that looks small until it ruins your afternoon.\n6. Open Security Group Traffic Allow cluster communication between:\nhana-node-a hana-node-b hana-qdevice-01 At minimum, the cluster nodes need to communicate for Corosync, PCS, and QDevice traffic.\nA common internal security group rule is to allow all traffic between the cluster nodes only:\ningress { from_port = 0 to_port = 0 protocol = \"-1\" description = \"Cluster interconnect\" cidr_blocks = [ \"\", \"\", \"\" ] } Use your security standards, but make sure the cluster nodes can actually talk to each other.\n7. Install Cluster Packages On both HANA nodes:\ndnf install -y pcs pacemaker fence-agents-all fence-agents-aws \\ resource-agents-cloud resource-agents-sap-hana Start and enable pcsd:\nsystemctl start pcsd systemctl enable pcsd systemctl status pcsd Set the hacluster password on both HANA nodes:\npasswd hacluster Make sure the hacluster user and haclient group have consistent IDs across all cluster nodes.\nCheck:\nid hacluster getent group haclient 8. Authenticate the Cluster Nodes From one HANA node:\npcs host auth hana-node-a hana-node-b Use the hacluster credentials when prompted.\n9. Create the Pacemaker Cluster Create and start the cluster:\npcs cluster setup --start --enable hana-cluster-prod hana-node-a hana-node-b Enable the cluster on all nodes:\npcs cluster enable --all Check status:\npcs cluster status pcs status Optional, but useful for AWS environments where latency can be less predictable than a local datacenter:\npcs cluster config update totem token=29000 At this point, the cluster should be running, but it should not yet manage SAP HANA.\n10. Install and Configure AWS CLI The AWS fencing and overlay IP agents need AWS access.\nInstall AWS CLI v2 if needed:\ncd /tmp curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\" unzip awscliv2.zip cd aws ./install Configure one AWS CLI profile for the cluster:\naws configure --profile cluster Example:\nAWS Access Key ID [None]: AWS Secret Access Key [None]: Default region name [None]: us-west-2 Default output format [None]: json If you use instance profiles, keep the configuration minimal. The important thing is that the cluster agents use the same profile name consistently.\nThis guide uses:\nprofile=cluster 11. Configure STONITH with fence_aws Install the AWS fence agent if not already installed:\ndnf install -y fence-agents-aws Create the STONITH resource:\npcs stonith create aws-cluster-fence fence_aws \\ region=us-west-2 \\ pcmk_host_map=\"hana-node-a:;hana-node-b:\" \\ pcmk_delay_max=45 \\ pcmk_reboot_action=off \\ power_timeout=600 \\ pcmk_reboot_timeout=600 \\ pcmk_reboot_retries=4 \\ op start timeout=600 \\ op monitor interval=300 timeout=60 Important:\nUse the exact node names used when creating the cluster. Replace the instance IDs with your real EC2 instance IDs. Test this before production. Test fencing:\npcs stonith fence hana-node-a After the test, clear STONITH history:\npcs stonith history cleanup Check status:\npcs status If fencing does not work, stop here. Do not keep building the cluster pretending it will be fine. It will not be fine.\n12. Create the Read/Write Overlay IP The Read/Write overlay IP follows the promoted SAP HANA node.\nCreate the resource:\npcs resource create hana-rw-ip aws-vpc-move-ip \\ ip=10.10.10.81 \\ routing_table= \\ interface=eth0 \\ profile=cluster \\ lookup_type=NetworkInterfaceId \\ op start interval=0 timeout=180 \\ op stop interval=0 timeout=180 \\ op monitor interval=60 timeout=60 Verify:\npcs status Test movement:\npcs resource move hana-rw-ip pcs status Clear the temporary move constraint afterward:\npcs resource clear hana-rw-ip This test confirms that the cluster can update AWS route tables.\n13. Configure SAPHanaSR Hooks Copy the hooks to a shared location visible to HANA:\nmkdir -p /hana/shared/myHooks cp /usr/share/SAPHanaSR/* /hana/shared/myHooks/ Update HANA global configuration on both nodes:\n/hana/shared/HDB/global/hdb/custom/config/global.ini Add:\n[ha_dr_provider_SAPHanaSR] provider = SAPHanaSR path = /hana/shared/myHooks execution_order = 1 [ha_dr_provider_chksrv] provider = ChkSrv path = /hana/shared/myHooks execution_order = 2 action_on_lost = kill Reload the HADR providers as the HANA admin user:\nsu - hdbadm hdbnsutil -reloadHADRProviders Verify initialization:\ncdtrace cat nameserver_chksrv.trc You want to see that the providers are loaded cleanly.\n14. Configure sudoers for SAPHanaSR Hooks The hook needs to write SAP HANA replication state into Pacemaker cluster attributes.\nCreate a sudoers file such as:\nvisudo -f /etc/sudoers.d/99-saphanasr Example sanitized sudoers configuration:\n# SAPHanaSR Scale-Up entries for writing srHook cluster attributes Cmnd_Alias SOK_SITEA = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteA -v SOK -t crm_config -s SAPHanaSR Cmnd_Alias SFAIL_SITEA = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteA -v SFAIL -t crm_config -s SAPHanaSR Cmnd_Alias SOK_SITEB = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteB -v SOK -t crm_config -s SAPHanaSR Cmnd_Alias SFAIL_SITEB = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteB -v SFAIL -t crm_config -s SAPHanaSR hdbadm ALL=(ALL) NOPASSWD: SOK_SITEA, SFAIL_SITEA, SOK_SITEB, SFAIL_SITEB Defaults!SOK_SITEA, SFAIL_SITEA, SOK_SITEB, SFAIL_SITEB !requiretty Validate syntax:\nvisudo -c 15. Disable Native SAP HANA systemd Startup Pacemaker should manage HANA, not systemd.\nOn both HANA nodes:\nsystemctl disable SAPHDB_00 Do not let systemd and Pacemaker both try to own HANA startup.\n16. Create the SAPHanaTopology Resource Create the topology resource:\npcs resource create SAPHanaTopology_HDB_00 SAPHanaTopology \\ SID=HDB \\ InstanceNumber=00 \\ op start timeout=600 \\ op stop timeout=300 \\ op monitor interval=10 timeout=600 \\ clone clone-max=2 clone-node-max=1 interleave=true Check:\npcs status The topology clone should run on both HANA nodes.\n17. Create the SAPHana Resource Create the promotable HANA resource:\npcs resource create SAPHana_HDB_00 SAPHana \\ SID=HDB \\ InstanceNumber=00 \\ PREFER_SITE_TAKEOVER=true \\ DUPLICATE_PRIMARY_TIMEOUT=7200 \\ AUTOMATED_REGISTER=true \\ op start interval=0 timeout=600 \\ op stop timeout=600 \\ op monitor interval=61 role=Unpromoted timeout=700 \\ op monitor interval=59 role=Promoted timeout=700 \\ op promote timeout=1800 \\ op demote timeout=1800 \\ promotable notify=true clone-max=2 clone-node-max=1 interleave=true Add failure cleanup behavior:\npcs resource meta SAPHana_HDB_00 failure-timeout=180 Check status:\npcs status You should eventually see one promoted HANA node and one unpromoted HANA node.\n18. Add Resource Ordering and Colocation Constraints The topology resource should start before the HANA resource:\npcs constraint order SAPHanaTopology_HDB_00-clone then SAPHana_HDB_00-clone symmetrical=false The Read/Write overlay IP should run with the promoted SAP HANA node:\npcs constraint colocation add hana-rw-ip with promoted SAPHana_HDB_00-clone 2000 Check constraints:\npcs constraint 19. Create the Read-Only Overlay IP The Read-Only overlay IP normally follows the synchronized secondary node.\nCreate the resource:\npcs resource create hana-ro-ip aws-vpc-move-ip \\ ip=10.10.10.82 \\ routing_table= \\ interface=eth0 \\ profile=cluster \\ lookup_type=NetworkInterfaceId \\ op start interval=0 timeout=180 \\ op stop interval=0 timeout=180 \\ op monitor interval=60 timeout=60 Add location rules:\npcs constraint location hana-ro-ip rule score=INFINITY \\ hana_hdb_sync_state eq SOK and \\ hana_hdb_roles eq 4:S:master1:master:worker:master pcs constraint location hana-ro-ip rule score=2000 \\ hana_hdb_sync_state eq PRIM and \\ hana_hdb_roles eq 4:P:master1:master:worker:master Check:\npcs constraint pcs status Expected behavior:\nIf primary and secondary are healthy and replication is synchronized, the Read-Only IP runs on the secondary. If the secondary is down or not synchronized, the Read-Only IP runs on the primary. After failover, the Read-Only IP remains where safe until the new secondary is registered and synchronized again. This is one of those details that makes the cluster feel a lot smarter than a simple “move everything to one node” design.\n20. Validate the Cluster State A healthy cluster should look conceptually like this:\nFigure 3 – Healthy cluster state showing both SAP HANA nodes online, the Read/Write overlay IP hosted on the primary node, and the Read-Only overlay IP hosted on the secondary node.\nUseful commands:\npcs status crm_mon -Afr1 Expected resource layout:\naws-cluster-fence Started hana-rw-ip Started hana-node-a SAPHanaTopology_HDB_00 Started hana-node-a hana-node-b SAPHana_HDB_00 Promoted hana-node-a SAPHana_HDB_00 Unpromoted hana-node-b hana-ro-ip Started hana-node-b In crm_mon -Afr1, look for:\nhana_hdb_srmode : syncmem hana_hdb_sync_state : PRIM hana_hdb_sync_state : SOK hana_hdb_roles : 4:P:master1:master:worker:master hana_hdb_roles : 4:S:master1:master:worker:master 21. Configure the Quorum Device Two-node clusters are always tricky. A quorum device gives the cluster a third vote.\nOn both HANA nodes:\ndnf install -y corosync-qdevice On the quorum host:\ndnf install -y pcs corosync-qnetd systemctl start pcsd.service systemctl enable pcsd.service On the quorum host, initialize and start QNetd:\npcs qdevice setup model net --enable --start pcs qdevice status net --full From one HANA node, authenticate the quorum host:\npcs host auth hana-qdevice-01 Add the quorum device:\npcs quorum device add model net host=hana-qdevice-01 algorithm=ffsplit Check quorum:\npcs quorum status pcs quorum device status Expected:\nExpected votes: 3 Total votes: 3 Quorum: 2 Flags: Quorate Qdevice Figure 5 – Quorum validation showing two SAP HANA cluster votes plus the additional vote provided by the dedicated quorum device.\nThat third vote is cheap insurance. Use it.\n22. Add Custom HANA Preload Readiness Validation This is the part I like the most, because it solves a real operational problem.\nReplication can be healthy while the secondary is still not fully ready to take production load. The custom preload validation checks HANA trace files and publishes a Pacemaker node attribute:\nhana_hdb_preload_status Possible values:\ncomplete pending Figure 4 – Cluster attributes showing replication state, synchronization health, and preload readiness validation for both SAP HANA nodes.\nThis attribute can then be used by patching or maintenance automation before triggering failover.\n23. Create the Preload Check Script Create:\nvi /usr/local/bin/check-hana-preload-status.sh Add:\n#!/bin/bash LOGFILE=\"/var/log/pacemaker/pacemaker.log\" base_dir=\"/usr/sap/HDB/HDB00/$(hostname)/trace\" cd \"$base_dir\" || exit 1 dbs=(DB_*) preload_complete=1 for database in \"${dbs[@]}\"; do latest_file=$(ls -rt \"$database\"/indexserver_$(hostname).?????.???.trc 2\u003e/dev/null | tail -1) if [ -n \"$latest_file\" ]; then result=$(grep \"isPreloadComplete\" \"$latest_file\" | tail -1) if [ -z \"$result\" ]; then echo \"No preload info found for $database — assuming preload complete\" elif echo \"$result\" | grep -q \"isPreloadComplete.*: 1\"; then echo \"Preload complete for $database\" else echo \"Preload NOT complete for $database\" preload_complete=0 fi else echo \"No trace file found for $database — assuming preload complete\" fi done echo \"Final result: $preload_complete\" if [ \"$preload_complete\" -eq 1 ]; then crm_attribute --node=\"$(hostname)\" \\ --name=hana_hdb_preload_status \\ --update=\"complete\" \\ --lifetime=reboot 2\u003e\u003e\"$LOGFILE\" echo \"$(date '+%b %d %T') HANA Preload Status: complete\" \u003e\u003e \"$LOGFILE\" if [ $? -ne 0 ]; then echo \"$(date): Error updating hana_hdb_preload_status on $(hostname)\" \u003e\u003e \"$LOGFILE\" exit 1 fi else crm_attribute --node=\"$(hostname)\" \\ --name=hana_hdb_preload_status \\ --update=\"pending\" \\ --lifetime=reboot 2\u003e\u003e\"$LOGFILE\" echo \"$(date '+%b %d %T') HANA Preload Status: pending\" \u003e\u003e \"$LOGFILE\" if [ $? -ne 0 ]; then echo \"$(date): Error updating hana_hdb_preload_status on $(hostname)\" \u003e\u003e \"$LOGFILE\" exit 1 fi fi Make it executable:\nchmod u+x /usr/local/bin/check-hana-preload-status.sh Run it manually once:\n/usr/local/bin/check-hana-preload-status.sh Check the attribute:\ncrm_mon -Afr1 | grep hana_hdb_preload_status 24. Create the systemd Service Create:\nvi /usr/lib/systemd/system/hana-preload-check.service Add:\n[Unit] Description=Run HANA preload status check [Service] Type=oneshot ExecStart=/usr/local/bin/check-hana-preload-status.sh 25. Create the systemd Timer Create:\nvi /usr/lib/systemd/system/hana-preload-check.timer Add:\n[Unit] Description=Run preload check every 30 seconds [Timer] OnBootSec=30s OnUnitActiveSec=30s AccuracySec=1s Unit=hana-preload-check.service [Install] WantedBy=timers.target Reload systemd:\nsystemctl daemon-reload Enable and start the timer:\nsystemctl enable --now hana-preload-check.timer Check:\nsystemctl status hana-preload-check.timer systemctl list-timers | grep hana-preload Check the cluster attribute again:\ncrm_mon -Afr1 | grep hana_hdb_preload_status This should eventually show:\nhana_hdb_preload_status : complete on the appropriate nodes.\n26. Final Validation Checklist Before calling this production-ready, validate each item.\nCluster Health pcs status crm_mon -Afr1 Confirm:\nBoth nodes online STONITH started HANA topology running on both nodes One HANA resource promoted One HANA resource unpromoted Read/Write IP on promoted node Read-Only IP on secondary node when replication is synchronized STONITH pcs stonith fence hana-node-a pcs stonith history cleanup Repeat for the other node during a controlled maintenance window.\nOverlay IPs pcs resource move hana-rw-ip pcs status pcs resource clear hana-rw-ip Also verify the AWS route table updates.\nHANA Replication Attributes crm_mon -Afr1 Look for:\nhana_hdb_sync_state : PRIM hana_hdb_sync_state : SOK hana_hdb_srmode : syncmem Quorum pcs quorum status Look for:\nExpected votes: 3 Total votes: 3 Flags: Quorate Qdevice Preload Readiness crm_mon -Afr1 | grep hana_hdb_preload_status Look for:\nhana_hdb_preload_status : complete 27. Example Healthy State A healthy cluster should tell a clear story:\nhana-node-a: promoted primary owns Read/Write IP hana-node-b: unpromoted secondary synchronized owns Read-Only IP hana-qdevice-01: contributes quorum vote If the output does not tell that story, do not ignore it.\nThe cluster is usually telling you something. Sometimes it whispers. Sometimes it screams. Either way, listen.\nLessons Learned Disable Source/Destination Check Early If overlay IPs are not behaving, check this before going too deep into Pacemaker.\nLet Pacemaker Own Recovery AWS Auto Recovery is useful, but not for this workload. The cluster should own the recovery decision.\nTest STONITH Configured is not the same as tested. A cluster with untested fencing is a polite disaster waiting for the right moment.\nValidate IAM Permissions Early If route movement or fencing fails, check IAM before blaming the resource agent.\nKeep Names Consistent Use the same hostnames everywhere: cluster setup, STONITH maps, /etc/hosts, constraints, and documentation.\nQuorum Devices Are Worth It A lightweight quorum host gives a two-node cluster a third vote. That is a very good trade.\nReplication Is Not Readiness This was the big operational lesson.\nSOK means replication is synchronized. It does not necessarily mean the secondary is fully preloaded and ready for production traffic.\nThe hana_hdb_preload_status attribute closes that visibility gap.\nConclusion Building SAP HANA High Availability on AWS requires more than simply enabling System Replication.\nA production-ready design needs:\nReliable fencing Predictable client connectivity AWS route-table overlay IPs HANA-aware Pacemaker resources Replication hooks Quorum protection Operational validation Preload readiness awareness When these layers work together, the result is a cluster that does more than fail over. It fails over in a way that is controlled, observable, and safe.\nAnd that is the whole point.\nHigh Availability is not magic.\nIt is a collection of boring details done correctly.\nUnfortunately, the boring details are usually the ones that save you at 2 AM.\nReferences Red Hat documentation for automating SAP HANA scale-up System Replication using the RHEL HA Add-On. Red Hat documentation for quorum devices with Corosync QNetd. AWS documentation for SAP HANA on AWS and SAPHanaSR hooks. Project implementation notes sanitized for public publication. ",
+  "wordCount" : "3431",
+  "inLanguage": "en",
+  "datePublished": "2026-06-05T00:00:00Z",
+  "dateModified": "2026-06-05T00:00:00Z",
+  "author":{
+    "@type": "Person",
+    "name": "Claudio Lombardo"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://opsunderpressure.xyz/posts/sap-hana-ha-aws-complete-guide/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Ops Under Pressure",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://opsunderpressure.xyz/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="https://opsunderpressure.xyz/" accesskey="h" title="Ops Under Pressure (Alt + H)">Ops Under Pressure</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="https://opsunderpressure.xyz/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://opsunderpressure.xyz/about/" title="About">
+                    <span>About</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/">Posts</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      SAP HANA High Availability on AWS with Pacemaker
+    </h1>
+    <div class="post-description">
+      A complete, sanitized, practical guide for building a SAP HANA High Availability cluster on AWS using Pacemaker, STONITH, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.
+    </div>
+    <div class="post-meta">
+
+<span title='2026-06-05 00:00:00 +0000 UTC'>June 5, 2026</span>&nbsp;·&nbsp;<span>17 min</span>&nbsp;·&nbsp;<span>Claudio Lombardo</span>
+
+</div>
+  </header> <details class="toc"  open>
+    <summary accesskey="c" title="(Alt + C)">
+        <span class="title">Table of Contents</span>
+    </summary>
+
+    <div class="inner"><ul>
+            <li>
+                <a href="#sap-hana-high-availability-on-aws-with-pacemaker" aria-label="SAP HANA High Availability on AWS with Pacemaker">SAP HANA High Availability on AWS with Pacemaker</a><ul>
+                    
+            <li>
+                <a href="#introduction" aria-label="Introduction">Introduction</a></li>
+            <li>
+                <a href="#architecture-overview" aria-label="Architecture Overview">Architecture Overview</a></li>
+            <li>
+                <a href="#why-aws-changes-the-design" aria-label="Why AWS Changes the Design">Why AWS Changes the Design</a></li>
+            <li>
+                <a href="#assumptions-before-starting" aria-label="Assumptions Before Starting">Assumptions Before Starting</a></li>
+            <li>
+                <a href="#naming-and-sanitization-used-in-this-guide" aria-label="Naming and Sanitization Used in This Guide">Naming and Sanitization Used in This Guide</a></li>
+            <li>
+                <a href="#1-prepare-aws-iam-permissions" aria-label="1. Prepare AWS IAM Permissions">1. Prepare AWS IAM Permissions</a></li>
+            <li>
+                <a href="#2-disable-aws-sourcedestination-check" aria-label="2. Disable AWS Source/Destination Check">2. Disable AWS Source/Destination Check</a></li>
+            <li>
+                <a href="#3-disable-aws-auto-recovery" aria-label="3. Disable AWS Auto Recovery">3. Disable AWS Auto Recovery</a></li>
+            <li>
+                <a href="#4-disable-networkmanager-cloud-setup" aria-label="4. Disable NetworkManager Cloud Setup">4. Disable NetworkManager Cloud Setup</a></li>
+            <li>
+                <a href="#5-confirm-host-resolution" aria-label="5. Confirm Host Resolution">5. Confirm Host Resolution</a></li>
+            <li>
+                <a href="#6-open-security-group-traffic" aria-label="6. Open Security Group Traffic">6. Open Security Group Traffic</a></li>
+            <li>
+                <a href="#7-install-cluster-packages" aria-label="7. Install Cluster Packages">7. Install Cluster Packages</a></li>
+            <li>
+                <a href="#8-authenticate-the-cluster-nodes" aria-label="8. Authenticate the Cluster Nodes">8. Authenticate the Cluster Nodes</a></li>
+            <li>
+                <a href="#9-create-the-pacemaker-cluster" aria-label="9. Create the Pacemaker Cluster">9. Create the Pacemaker Cluster</a></li>
+            <li>
+                <a href="#10-install-and-configure-aws-cli" aria-label="10. Install and Configure AWS CLI">10. Install and Configure AWS CLI</a></li>
+            <li>
+                <a href="#11-configure-stonith-with-fence_aws" aria-label="11. Configure STONITH with fence_aws">11. Configure STONITH with fence_aws</a></li>
+            <li>
+                <a href="#12-create-the-readwrite-overlay-ip" aria-label="12. Create the Read/Write Overlay IP">12. Create the Read/Write Overlay IP</a></li>
+            <li>
+                <a href="#13-configure-saphanasr-hooks" aria-label="13. Configure SAPHanaSR Hooks">13. Configure SAPHanaSR Hooks</a></li>
+            <li>
+                <a href="#14-configure-sudoers-for-saphanasr-hooks" aria-label="14. Configure sudoers for SAPHanaSR Hooks">14. Configure sudoers for SAPHanaSR Hooks</a></li>
+            <li>
+                <a href="#15-disable-native-sap-hana-systemd-startup" aria-label="15. Disable Native SAP HANA systemd Startup">15. Disable Native SAP HANA systemd Startup</a></li>
+            <li>
+                <a href="#16-create-the-saphanatopology-resource" aria-label="16. Create the SAPHanaTopology Resource">16. Create the SAPHanaTopology Resource</a></li>
+            <li>
+                <a href="#17-create-the-saphana-resource" aria-label="17. Create the SAPHana Resource">17. Create the SAPHana Resource</a></li>
+            <li>
+                <a href="#18-add-resource-ordering-and-colocation-constraints" aria-label="18. Add Resource Ordering and Colocation Constraints">18. Add Resource Ordering and Colocation Constraints</a></li>
+            <li>
+                <a href="#19-create-the-read-only-overlay-ip" aria-label="19. Create the Read-Only Overlay IP">19. Create the Read-Only Overlay IP</a></li>
+            <li>
+                <a href="#20-validate-the-cluster-state" aria-label="20. Validate the Cluster State">20. Validate the Cluster State</a></li>
+            <li>
+                <a href="#21-configure-the-quorum-device" aria-label="21. Configure the Quorum Device">21. Configure the Quorum Device</a></li>
+            <li>
+                <a href="#22-add-custom-hana-preload-readiness-validation" aria-label="22. Add Custom HANA Preload Readiness Validation">22. Add Custom HANA Preload Readiness Validation</a></li>
+            <li>
+                <a href="#23-create-the-preload-check-script" aria-label="23. Create the Preload Check Script">23. Create the Preload Check Script</a></li>
+            <li>
+                <a href="#24-create-the-systemd-service" aria-label="24. Create the systemd Service">24. Create the systemd Service</a></li>
+            <li>
+                <a href="#25-create-the-systemd-timer" aria-label="25. Create the systemd Timer">25. Create the systemd Timer</a></li>
+            <li>
+                <a href="#26-final-validation-checklist" aria-label="26. Final Validation Checklist">26. Final Validation Checklist</a><ul>
+                    
+            <li>
+                <a href="#cluster-health" aria-label="Cluster Health">Cluster Health</a></li>
+            <li>
+                <a href="#stonith" aria-label="STONITH">STONITH</a></li>
+            <li>
+                <a href="#overlay-ips" aria-label="Overlay IPs">Overlay IPs</a></li>
+            <li>
+                <a href="#hana-replication-attributes" aria-label="HANA Replication Attributes">HANA Replication Attributes</a></li>
+            <li>
+                <a href="#quorum" aria-label="Quorum">Quorum</a></li>
+            <li>
+                <a href="#preload-readiness" aria-label="Preload Readiness">Preload Readiness</a></li></ul>
+            </li>
+            <li>
+                <a href="#27-example-healthy-state" aria-label="27. Example Healthy State">27. Example Healthy State</a></li>
+            <li>
+                <a href="#lessons-learned" aria-label="Lessons Learned">Lessons Learned</a><ul>
+                    
+            <li>
+                <a href="#disable-sourcedestination-check-early" aria-label="Disable Source/Destination Check Early">Disable Source/Destination Check Early</a></li>
+            <li>
+                <a href="#let-pacemaker-own-recovery" aria-label="Let Pacemaker Own Recovery">Let Pacemaker Own Recovery</a></li>
+            <li>
+                <a href="#test-stonith" aria-label="Test STONITH">Test STONITH</a></li>
+            <li>
+                <a href="#validate-iam-permissions-early" aria-label="Validate IAM Permissions Early">Validate IAM Permissions Early</a></li>
+            <li>
+                <a href="#keep-names-consistent" aria-label="Keep Names Consistent">Keep Names Consistent</a></li>
+            <li>
+                <a href="#quorum-devices-are-worth-it" aria-label="Quorum Devices Are Worth It">Quorum Devices Are Worth It</a></li>
+            <li>
+                <a href="#replication-is-not-readiness" aria-label="Replication Is Not Readiness">Replication Is Not Readiness</a></li></ul>
+            </li>
+            <li>
+                <a href="#conclusion" aria-label="Conclusion">Conclusion</a></li>
+            <li>
+                <a href="#references" aria-label="References">References</a>
+            </li>
+        </ul>
+        </li>
+        </ul>
+    </div>
+</details>
+
+  <div class="post-content md-content"><h1 id="sap-hana-high-availability-on-aws-with-pacemaker">SAP HANA High Availability on AWS with Pacemaker<a hidden class="anchor" aria-hidden="true" href="#sap-hana-high-availability-on-aws-with-pacemaker">#</a></h1>
+<p><em>Building a production-ready SAP HANA cluster using Pacemaker, AWS-integrated STONITH fencing, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation.</em></p>
+<p><img alt="Figure 1 – SAP HANA High Availability Architecture" loading="lazy" src="/images/hana-ha-aws-overview.png"></p>
+<p><em>Figure 1 – Overall architecture showing SAP HANA System Replication, overlay IP resources, STONITH fencing, and a dedicated quorum device.</em></p>
+<h2 id="introduction">Introduction<a hidden class="anchor" aria-hidden="true" href="#introduction">#</a></h2>
+<p>Implementing SAP HANA High Availability on AWS is not particularly difficult.</p>
+<p>Implementing it correctly is.</p>
+<p>Most guides focus on getting SAP HANA System Replication working between two nodes. That is required, of course, but replication alone does not give you a production-ready High Availability design. The cluster also needs to make safe failover decisions, prevent split-brain, move client traffic to the correct node, validate fencing, maintain quorum, and give operators enough visibility to know when a failover is actually safe.</p>
+<p>This guide walks through a complete SAP HANA High Availability cluster design on AWS using:</p>
+<ul>
+<li>SAP HANA System Replication</li>
+<li>Red Hat High Availability Add-On</li>
+<li>Pacemaker</li>
+<li>Corosync</li>
+<li>AWS STONITH fencing</li>
+<li>AWS route-table-based overlay IPs</li>
+<li>Read/Write and Read-Only client endpoints</li>
+<li>SAPHanaTopology and SAPHana resource agents</li>
+<li>SAPHanaSR hooks</li>
+<li>Corosync QDevice</li>
+<li>Custom HANA preload readiness validation</li>
+</ul>
+<p>This is not meant to be a blind copy/paste document. Every environment is different. The values in this guide are sanitized examples. Replace the placeholders with your real AWS resource IDs, SAP SID, instance number, route table ID, overlay IPs, and instance IDs.</p>
+<blockquote>
+<p><strong>Fun fact:</strong> I enjoyed this project so much that I ended up writing a song about it. If you&rsquo;ve ever spent days wrestling with SAP HANA System Replication, Pacemaker constraints, overlay IPs, route tables, fencing, and quorum devices, you&rsquo;ll understand why finally seeing everything fail over cleanly feels worthy of its own soundtrack.</p>
+<p>🎵 <strong>&ldquo;Heartbit Failover&rdquo;</strong> – Listen here:</p>
+<p><a href="/audio/heartbit-failover.mp3">Heartbeat-Failover.mp3</a></p>
+<p>I can&rsquo;t guarantee it will help you troubleshoot a split-brain event, but it definitely captures the emotional journey of getting a HANA cluster working properly.</p>
+</blockquote>
+<p>The examples use:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Item</th>
+					<th>Example Value</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>SAP SID</td>
+					<td><code>HDB</code></td>
+			</tr>
+			<tr>
+					<td>SAP Instance Number</td>
+					<td><code>00</code></td>
+			</tr>
+			<tr>
+					<td>Primary-capable HANA node</td>
+					<td><code>hana-node-a</code></td>
+			</tr>
+			<tr>
+					<td>Secondary-capable HANA node</td>
+					<td><code>hana-node-b</code></td>
+			</tr>
+			<tr>
+					<td>Quorum host</td>
+					<td><code>hana-qdevice-01</code></td>
+			</tr>
+			<tr>
+					<td>Cluster name</td>
+					<td><code>hana-cluster-prod</code></td>
+			</tr>
+			<tr>
+					<td>AWS region</td>
+					<td><code>us-west-2</code></td>
+			</tr>
+			<tr>
+					<td>Read/Write overlay IP</td>
+					<td><code>10.10.10.81</code></td>
+			</tr>
+			<tr>
+					<td>Read-Only overlay IP</td>
+					<td><code>10.10.10.82</code></td>
+			</tr>
+			<tr>
+					<td>Route table</td>
+					<td><code>&lt;route-table-id&gt;</code></td>
+			</tr>
+			<tr>
+					<td>Node A instance ID</td>
+					<td><code>&lt;instance-id-node-a&gt;</code></td>
+			</tr>
+			<tr>
+					<td>Node B instance ID</td>
+					<td><code>&lt;instance-id-node-b&gt;</code></td>
+			</tr>
+			<tr>
+					<td>AWS CLI profile</td>
+					<td><code>cluster</code></td>
+			</tr>
+			<tr>
+					<td>HANA admin user</td>
+					<td><code>hdbadm</code></td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="architecture-overview">Architecture Overview<a hidden class="anchor" aria-hidden="true" href="#architecture-overview">#</a></h2>
+<p>The cluster uses two SAP HANA nodes and one lightweight quorum node.</p>
+<table>
+	<thead>
+			<tr>
+					<th>Host</th>
+					<th>Purpose</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>hana-node-a</code></td>
+					<td>SAP HANA primary or secondary</td>
+			</tr>
+			<tr>
+					<td><code>hana-node-b</code></td>
+					<td>SAP HANA primary or secondary</td>
+			</tr>
+			<tr>
+					<td><code>hana-qdevice-01</code></td>
+					<td>Corosync QNetd quorum device</td>
+			</tr>
+	</tbody>
+</table>
+<p>The HANA nodes run the database and participate in SAP HANA System Replication. The quorum host does not run SAP HANA. Its job is to provide a third vote so the two-node cluster can make deterministic decisions during communication failures.</p>
+<p>The normal operating state looks like this:</p>
+<ul>
+<li><code>hana-node-a</code> is promoted and owns the Read/Write overlay IP.</li>
+<li><code>hana-node-b</code> is unpromoted and owns the Read-Only overlay IP.</li>
+<li>Both nodes run <code>SAPHanaTopology</code>.</li>
+<li><code>fence_aws</code> is configured and tested.</li>
+<li>The quorum device contributes the third vote.</li>
+<li>Custom preload validation reports whether the secondary is ready for takeover.</li>
+</ul>
+<hr>
+<h2 id="why-aws-changes-the-design">Why AWS Changes the Design<a hidden class="anchor" aria-hidden="true" href="#why-aws-changes-the-design">#</a></h2>
+<p>In a traditional datacenter, engineers often expect a virtual IP address to move directly between servers.</p>
+<p>AWS does not work that way.</p>
+<p>There is no normal Layer-2 floating IP behavior between EC2 instances like you might expect in a classic VLAN. Instead, the cluster updates AWS route tables so that traffic for an overlay IP points to the network interface of the node currently owning the resource.</p>
+<p><img alt="Figure 2 – AWS Route Table Overlay IP Design" loading="lazy" src="/images/hana-route-table-overlay-ips.png"></p>
+<p><em>Figure 2 – AWS route table entries used by the Read/Write and Read-Only overlay IP resources. During failover, Pacemaker updates these routes so traffic automatically follows the active SAP HANA node.</em></p>
+<p>Conceptually:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Client
+</span></span><span style="display:flex;"><span>  |
+</span></span><span style="display:flex;"><span>Overlay IP
+</span></span><span style="display:flex;"><span>  |
+</span></span><span style="display:flex;"><span>AWS Route Table
+</span></span><span style="display:flex;"><span>  |
+</span></span><span style="display:flex;"><span>Network Interface
+</span></span><span style="display:flex;"><span>  |
+</span></span><span style="display:flex;"><span>Current SAP HANA owner
+</span></span></code></pre></div><p>That is why IAM permissions, route table IDs, and Source/Destination Check matter so much. If any of those are wrong, the cluster may look healthy while client traffic goes nowhere. Ask me how I know.</p>
+<hr>
+<h2 id="assumptions-before-starting">Assumptions Before Starting<a hidden class="anchor" aria-hidden="true" href="#assumptions-before-starting">#</a></h2>
+<p>This guide assumes:</p>
+<ul>
+<li>SAP HANA is already installed on both HANA nodes.</li>
+<li>SAP HANA System Replication is already configured or will be configured before cluster takeover is enabled.</li>
+<li>Both HANA nodes are in the same AWS VPC design that supports the required route-table overlay IP model.</li>
+<li>The Red Hat High Availability Add-On is available.</li>
+<li>DNS and <code>/etc/hosts</code> resolution are correct between all cluster nodes.</li>
+<li>Security groups allow cluster communication.</li>
+<li>You are using RHEL 9 or a supported RHEL for SAP version.</li>
+<li>The examples are executed as <code>root</code> unless otherwise noted.</li>
+</ul>
+<hr>
+<h2 id="naming-and-sanitization-used-in-this-guide">Naming and Sanitization Used in This Guide<a hidden class="anchor" aria-hidden="true" href="#naming-and-sanitization-used-in-this-guide">#</a></h2>
+<p>All internal names have been sanitized.</p>
+<p>Use these mappings when adapting the guide:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Sanitized Name</th>
+					<th>Meaning</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>hana-node-a</code></td>
+					<td>First SAP HANA cluster node</td>
+			</tr>
+			<tr>
+					<td><code>hana-node-b</code></td>
+					<td>Second SAP HANA cluster node</td>
+			</tr>
+			<tr>
+					<td><code>hana-qdevice-01</code></td>
+					<td>Quorum device host</td>
+			</tr>
+			<tr>
+					<td><code>hana-cluster-prod</code></td>
+					<td>Pacemaker cluster name</td>
+			</tr>
+			<tr>
+					<td><code>10.10.10.81</code></td>
+					<td>Read/Write overlay IP</td>
+			</tr>
+			<tr>
+					<td><code>10.10.10.82</code></td>
+					<td>Read-Only overlay IP</td>
+			</tr>
+			<tr>
+					<td><code>&lt;route-table-id&gt;</code></td>
+					<td>AWS route table used by overlay IPs</td>
+			</tr>
+			<tr>
+					<td><code>&lt;instance-id-node-a&gt;</code></td>
+					<td>EC2 instance ID for <code>hana-node-a</code></td>
+			</tr>
+			<tr>
+					<td><code>&lt;instance-id-node-b&gt;</code></td>
+					<td>EC2 instance ID for <code>hana-node-b</code></td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="1-prepare-aws-iam-permissions">1. Prepare AWS IAM Permissions<a hidden class="anchor" aria-hidden="true" href="#1-prepare-aws-iam-permissions">#</a></h2>
+<p>Both HANA nodes need an instance profile that allows the cluster to modify AWS routes and fence peer instances.</p>
+<p>At minimum, the role needs permissions similar to this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;Version&#34;</span>: <span style="color:#e6db74">&#34;2012-10-17&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;Statement&#34;</span>: [
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Action&#34;</span>: [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:Describe*&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:ReplaceRoute&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:CreateRoute&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:DeleteRoute&#34;</span>
+</span></span><span style="display:flex;"><span>      ],
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Resource&#34;</span>: <span style="color:#e6db74">&#34;*&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Effect&#34;</span>: <span style="color:#e6db74">&#34;Allow&#34;</span>
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Condition&#34;</span>: {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;StringEquals&#34;</span>: {
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">&#34;ec2:ResourceTag/HanaCluster&#34;</span>: [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;Prod&#34;</span>
+</span></span><span style="display:flex;"><span>          ]
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Action&#34;</span>: [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:ModifyInstanceAttribute&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:RebootInstances&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:StartInstances&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ec2:StopInstances&#34;</span>
+</span></span><span style="display:flex;"><span>      ],
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Resource&#34;</span>: <span style="color:#e6db74">&#34;*&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Effect&#34;</span>: <span style="color:#e6db74">&#34;Allow&#34;</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The route permissions are needed by <code>aws-vpc-move-ip</code>.</p>
+<p>The start, stop, reboot, and modify permissions are needed by <code>fence_aws</code>.</p>
+<p>Tag both HANA instances consistently. For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>HanaCluster = Prod
+</span></span></code></pre></div><p>That lets you scope fencing permissions to only the instances that belong to the cluster.</p>
+<p>Do not skip IAM validation. A lot of AWS cluster problems are not cluster problems at all. They are permission problems wearing a fake mustache.</p>
+<hr>
+<h2 id="2-disable-aws-sourcedestination-check">2. Disable AWS Source/Destination Check<a hidden class="anchor" aria-hidden="true" href="#2-disable-aws-sourcedestination-check">#</a></h2>
+<p>Disable Source/Destination Check on both HANA EC2 instances.</p>
+<p>You can do this in the AWS console:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>EC2
+</span></span><span style="display:flex;"><span>  -&gt; Instances
+</span></span><span style="display:flex;"><span>  -&gt; Select instance
+</span></span><span style="display:flex;"><span>  -&gt; Actions
+</span></span><span style="display:flex;"><span>  -&gt; Networking
+</span></span><span style="display:flex;"><span>  -&gt; Change source/destination check
+</span></span><span style="display:flex;"><span>  -&gt; Stop
+</span></span></code></pre></div><p>Or with AWS CLI:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>aws ec2 modify-instance-attribute <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --instance-id &lt;instance-id-node-a&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --no-source-dest-check <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --region us-west-2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>aws ec2 modify-instance-attribute <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --instance-id &lt;instance-id-node-b&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --no-source-dest-check <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --region us-west-2
+</span></span></code></pre></div><p>If Source/Destination Check remains enabled, overlay IP routing will not behave correctly.</p>
+<hr>
+<h2 id="3-disable-aws-auto-recovery">3. Disable AWS Auto Recovery<a hidden class="anchor" aria-hidden="true" href="#3-disable-aws-auto-recovery">#</a></h2>
+<p>Pacemaker must own the recovery decision.</p>
+<p>Disable AWS Auto Recovery for both HANA nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>aws ec2 modify-instance-maintenance-options <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --instance-id &lt;instance-id-node-a&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --auto-recovery disabled <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --region us-west-2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>aws ec2 modify-instance-maintenance-options <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --instance-id &lt;instance-id-node-b&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --auto-recovery disabled <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  --region us-west-2
+</span></span></code></pre></div><p>You can also do this from the AWS console:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>EC2
+</span></span><span style="display:flex;"><span>  -&gt; Instances
+</span></span><span style="display:flex;"><span>  -&gt; Select instance
+</span></span><span style="display:flex;"><span>  -&gt; Actions
+</span></span><span style="display:flex;"><span>  -&gt; Instance settings
+</span></span><span style="display:flex;"><span>  -&gt; Change auto-recovery behavior
+</span></span></code></pre></div><p>The point is simple: do not let AWS Auto Recovery and Pacemaker fight over the same workload.</p>
+<hr>
+<h2 id="4-disable-networkmanager-cloud-setup">4. Disable NetworkManager Cloud Setup<a hidden class="anchor" aria-hidden="true" href="#4-disable-networkmanager-cloud-setup">#</a></h2>
+<p>On both HANA nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl disable nm-cloud-setup.timer
+</span></span><span style="display:flex;"><span>systemctl stop nm-cloud-setup.timer
+</span></span><span style="display:flex;"><span>systemctl disable nm-cloud-setup
+</span></span><span style="display:flex;"><span>systemctl stop nm-cloud-setup
+</span></span></code></pre></div><p>This avoids NetworkManager cloud automation interfering with the static network behavior expected by the cluster.</p>
+<hr>
+<h2 id="5-confirm-host-resolution">5. Confirm Host Resolution<a hidden class="anchor" aria-hidden="true" href="#5-confirm-host-resolution">#</a></h2>
+<p>Add both HANA nodes and the quorum host to <code>/etc/hosts</code>, or make sure DNS resolves them reliably.</p>
+<p>Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>10.10.20.10 hana-node-a
+</span></span><span style="display:flex;"><span>10.10.20.11 hana-node-b
+</span></span><span style="display:flex;"><span>10.10.20.12 hana-qdevice-01
+</span></span></code></pre></div><p>Verify from each node:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>getent hosts hana-node-a
+</span></span><span style="display:flex;"><span>getent hosts hana-node-b
+</span></span><span style="display:flex;"><span>getent hosts hana-qdevice-01
+</span></span></code></pre></div><p>Make sure you use the same names everywhere.</p>
+<p>If you create the cluster with short names, use short names in STONITH mappings. If you create the cluster with FQDNs, use FQDNs consistently.</p>
+<p>Mixed naming in clusters is the kind of pain that looks small until it ruins your afternoon.</p>
+<hr>
+<h2 id="6-open-security-group-traffic">6. Open Security Group Traffic<a hidden class="anchor" aria-hidden="true" href="#6-open-security-group-traffic">#</a></h2>
+<p>Allow cluster communication between:</p>
+<ul>
+<li><code>hana-node-a</code></li>
+<li><code>hana-node-b</code></li>
+<li><code>hana-qdevice-01</code></li>
+</ul>
+<p>At minimum, the cluster nodes need to communicate for Corosync, PCS, and QDevice traffic.</p>
+<p>A common internal security group rule is to allow all traffic between the cluster nodes only:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-hcl" data-lang="hcl"><span style="display:flex;"><span><span style="color:#66d9ef">ingress</span> {
+</span></span><span style="display:flex;"><span>  from_port   <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>  to_port     <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>  protocol    <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;-1&#34;</span>
+</span></span><span style="display:flex;"><span>  description <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Cluster interconnect&#34;</span>
+</span></span><span style="display:flex;"><span>  cidr_blocks <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&lt;hana-node-a-private-cidr&gt;&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&lt;hana-node-b-private-cidr&gt;&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&lt;hana-qdevice-private-cidr&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Use your security standards, but make sure the cluster nodes can actually talk to each other.</p>
+<hr>
+<h2 id="7-install-cluster-packages">7. Install Cluster Packages<a hidden class="anchor" aria-hidden="true" href="#7-install-cluster-packages">#</a></h2>
+<p>On both HANA nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>dnf install -y pcs pacemaker fence-agents-all fence-agents-aws <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  resource-agents-cloud resource-agents-sap-hana
+</span></span></code></pre></div><p>Start and enable <code>pcsd</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl start pcsd
+</span></span><span style="display:flex;"><span>systemctl enable pcsd
+</span></span><span style="display:flex;"><span>systemctl status pcsd
+</span></span></code></pre></div><p>Set the <code>hacluster</code> password on both HANA nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>passwd hacluster
+</span></span></code></pre></div><p>Make sure the <code>hacluster</code> user and <code>haclient</code> group have consistent IDs across all cluster nodes.</p>
+<p>Check:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>id hacluster
+</span></span><span style="display:flex;"><span>getent group haclient
+</span></span></code></pre></div><hr>
+<h2 id="8-authenticate-the-cluster-nodes">8. Authenticate the Cluster Nodes<a hidden class="anchor" aria-hidden="true" href="#8-authenticate-the-cluster-nodes">#</a></h2>
+<p>From one HANA node:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs host auth hana-node-a hana-node-b
+</span></span></code></pre></div><p>Use the <code>hacluster</code> credentials when prompted.</p>
+<hr>
+<h2 id="9-create-the-pacemaker-cluster">9. Create the Pacemaker Cluster<a hidden class="anchor" aria-hidden="true" href="#9-create-the-pacemaker-cluster">#</a></h2>
+<p>Create and start the cluster:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs cluster setup --start --enable hana-cluster-prod hana-node-a hana-node-b
+</span></span></code></pre></div><p>Enable the cluster on all nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs cluster enable --all
+</span></span></code></pre></div><p>Check status:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs cluster status
+</span></span><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>Optional, but useful for AWS environments where latency can be less predictable than a local datacenter:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs cluster config update totem token<span style="color:#f92672">=</span><span style="color:#ae81ff">29000</span>
+</span></span></code></pre></div><p>At this point, the cluster should be running, but it should not yet manage SAP HANA.</p>
+<hr>
+<h2 id="10-install-and-configure-aws-cli">10. Install and Configure AWS CLI<a hidden class="anchor" aria-hidden="true" href="#10-install-and-configure-aws-cli">#</a></h2>
+<p>The AWS fencing and overlay IP agents need AWS access.</p>
+<p>Install AWS CLI v2 if needed:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cd /tmp
+</span></span><span style="display:flex;"><span>curl <span style="color:#e6db74">&#34;https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip&#34;</span> -o <span style="color:#e6db74">&#34;awscliv2.zip&#34;</span>
+</span></span><span style="display:flex;"><span>unzip awscliv2.zip
+</span></span><span style="display:flex;"><span>cd aws
+</span></span><span style="display:flex;"><span>./install
+</span></span></code></pre></div><p>Configure one AWS CLI profile for the cluster:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>aws configure --profile cluster
+</span></span></code></pre></div><p>Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>AWS Access Key ID [None]: &lt;access-key-or-use-instance-role&gt;
+</span></span><span style="display:flex;"><span>AWS Secret Access Key [None]: &lt;secret-key-or-use-instance-role&gt;
+</span></span><span style="display:flex;"><span>Default region name [None]: us-west-2
+</span></span><span style="display:flex;"><span>Default output format [None]: json
+</span></span></code></pre></div><p>If you use instance profiles, keep the configuration minimal. The important thing is that the cluster agents use the same profile name consistently.</p>
+<p>This guide uses:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>profile=cluster
+</span></span></code></pre></div><hr>
+<h2 id="11-configure-stonith-with-fence_aws">11. Configure STONITH with fence_aws<a hidden class="anchor" aria-hidden="true" href="#11-configure-stonith-with-fence_aws">#</a></h2>
+<p>Install the AWS fence agent if not already installed:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>dnf install -y fence-agents-aws
+</span></span></code></pre></div><p>Create the STONITH resource:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs stonith create aws-cluster-fence fence_aws <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  region<span style="color:#f92672">=</span>us-west-2 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  pcmk_host_map<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;hana-node-a:&lt;instance-id-node-a&gt;;hana-node-b:&lt;instance-id-node-b&gt;&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  pcmk_delay_max<span style="color:#f92672">=</span><span style="color:#ae81ff">45</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  pcmk_reboot_action<span style="color:#f92672">=</span>off <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  power_timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  pcmk_reboot_timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  pcmk_reboot_retries<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op start timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op monitor interval<span style="color:#f92672">=</span><span style="color:#ae81ff">300</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">60</span>
+</span></span></code></pre></div><p>Important:</p>
+<ul>
+<li>Use the exact node names used when creating the cluster.</li>
+<li>Replace the instance IDs with your real EC2 instance IDs.</li>
+<li>Test this before production.</li>
+</ul>
+<p>Test fencing:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs stonith fence hana-node-a
+</span></span></code></pre></div><p>After the test, clear STONITH history:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs stonith history cleanup
+</span></span></code></pre></div><p>Check status:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>If fencing does not work, stop here. Do not keep building the cluster pretending it will be fine. It will not be fine.</p>
+<hr>
+<h2 id="12-create-the-readwrite-overlay-ip">12. Create the Read/Write Overlay IP<a hidden class="anchor" aria-hidden="true" href="#12-create-the-readwrite-overlay-ip">#</a></h2>
+<p>The Read/Write overlay IP follows the promoted SAP HANA node.</p>
+<p>Create the resource:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource create hana-rw-ip aws-vpc-move-ip <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  ip<span style="color:#f92672">=</span>10.10.10.81 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  routing_table<span style="color:#f92672">=</span>&lt;route-table-id&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  interface<span style="color:#f92672">=</span>eth0 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  profile<span style="color:#f92672">=</span>cluster <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  lookup_type<span style="color:#f92672">=</span>NetworkInterfaceId <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op start interval<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">180</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op stop interval<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">180</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op monitor interval<span style="color:#f92672">=</span><span style="color:#ae81ff">60</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">60</span>
+</span></span></code></pre></div><p>Verify:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>Test movement:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource move hana-rw-ip
+</span></span><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>Clear the temporary move constraint afterward:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource clear hana-rw-ip
+</span></span></code></pre></div><p>This test confirms that the cluster can update AWS route tables.</p>
+<hr>
+<h2 id="13-configure-saphanasr-hooks">13. Configure SAPHanaSR Hooks<a hidden class="anchor" aria-hidden="true" href="#13-configure-saphanasr-hooks">#</a></h2>
+<p>Copy the hooks to a shared location visible to HANA:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir -p /hana/shared/myHooks
+</span></span><span style="display:flex;"><span>cp /usr/share/SAPHanaSR/* /hana/shared/myHooks/
+</span></span></code></pre></div><p>Update HANA global configuration on both nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>/hana/shared/HDB/global/hdb/custom/config/global.ini
+</span></span></code></pre></div><p>Add:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[ha_dr_provider_SAPHanaSR]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">provider</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">SAPHanaSR</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">/hana/shared/myHooks</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">execution_order</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[ha_dr_provider_chksrv]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">provider</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">ChkSrv</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">/hana/shared/myHooks</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">execution_order</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">2</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">action_on_lost</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">kill</span>
+</span></span></code></pre></div><p>Reload the HADR providers as the HANA admin user:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>su - hdbadm
+</span></span><span style="display:flex;"><span>hdbnsutil -reloadHADRProviders
+</span></span></code></pre></div><p>Verify initialization:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cdtrace
+</span></span><span style="display:flex;"><span>cat nameserver_chksrv.trc
+</span></span></code></pre></div><p>You want to see that the providers are loaded cleanly.</p>
+<hr>
+<h2 id="14-configure-sudoers-for-saphanasr-hooks">14. Configure sudoers for SAPHanaSR Hooks<a hidden class="anchor" aria-hidden="true" href="#14-configure-sudoers-for-saphanasr-hooks">#</a></h2>
+<p>The hook needs to write SAP HANA replication state into Pacemaker cluster attributes.</p>
+<p>Create a sudoers file such as:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>visudo -f /etc/sudoers.d/99-saphanasr
+</span></span></code></pre></div><p>Example sanitized sudoers configuration:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span># SAPHanaSR Scale-Up entries for writing srHook cluster attributes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Cmnd_Alias SOK_SITEA   = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteA -v SOK -t crm_config -s SAPHanaSR
+</span></span><span style="display:flex;"><span>Cmnd_Alias SFAIL_SITEA = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteA -v SFAIL -t crm_config -s SAPHanaSR
+</span></span><span style="display:flex;"><span>Cmnd_Alias SOK_SITEB   = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteB -v SOK -t crm_config -s SAPHanaSR
+</span></span><span style="display:flex;"><span>Cmnd_Alias SFAIL_SITEB = /usr/sbin/crm_attribute -n hana_hdb_site_srHook_siteB -v SFAIL -t crm_config -s SAPHanaSR
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>hdbadm ALL=(ALL) NOPASSWD: SOK_SITEA, SFAIL_SITEA, SOK_SITEB, SFAIL_SITEB
+</span></span><span style="display:flex;"><span>Defaults!SOK_SITEA, SFAIL_SITEA, SOK_SITEB, SFAIL_SITEB !requiretty
+</span></span></code></pre></div><p>Validate syntax:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>visudo -c
+</span></span></code></pre></div><hr>
+<h2 id="15-disable-native-sap-hana-systemd-startup">15. Disable Native SAP HANA systemd Startup<a hidden class="anchor" aria-hidden="true" href="#15-disable-native-sap-hana-systemd-startup">#</a></h2>
+<p>Pacemaker should manage HANA, not systemd.</p>
+<p>On both HANA nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl disable SAPHDB_00
+</span></span></code></pre></div><p>Do not let systemd and Pacemaker both try to own HANA startup.</p>
+<hr>
+<h2 id="16-create-the-saphanatopology-resource">16. Create the SAPHanaTopology Resource<a hidden class="anchor" aria-hidden="true" href="#16-create-the-saphanatopology-resource">#</a></h2>
+<p>Create the topology resource:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource create SAPHanaTopology_HDB_00 SAPHanaTopology <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  SID<span style="color:#f92672">=</span>HDB <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  InstanceNumber<span style="color:#f92672">=</span><span style="color:#ae81ff">00</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op start timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op stop timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">300</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op monitor interval<span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  clone clone-max<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span> clone-node-max<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> interleave<span style="color:#f92672">=</span>true
+</span></span></code></pre></div><p>Check:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>The topology clone should run on both HANA nodes.</p>
+<hr>
+<h2 id="17-create-the-saphana-resource">17. Create the SAPHana Resource<a hidden class="anchor" aria-hidden="true" href="#17-create-the-saphana-resource">#</a></h2>
+<p>Create the promotable HANA resource:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource create SAPHana_HDB_00 SAPHana <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  SID<span style="color:#f92672">=</span>HDB <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  InstanceNumber<span style="color:#f92672">=</span><span style="color:#ae81ff">00</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  PREFER_SITE_TAKEOVER<span style="color:#f92672">=</span>true <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  DUPLICATE_PRIMARY_TIMEOUT<span style="color:#f92672">=</span><span style="color:#ae81ff">7200</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  AUTOMATED_REGISTER<span style="color:#f92672">=</span>true <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op start interval<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op stop timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">600</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op monitor interval<span style="color:#f92672">=</span><span style="color:#ae81ff">61</span> role<span style="color:#f92672">=</span>Unpromoted timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">700</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op monitor interval<span style="color:#f92672">=</span><span style="color:#ae81ff">59</span> role<span style="color:#f92672">=</span>Promoted timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">700</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op promote timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">1800</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op demote timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">1800</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  promotable notify<span style="color:#f92672">=</span>true clone-max<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span> clone-node-max<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> interleave<span style="color:#f92672">=</span>true
+</span></span></code></pre></div><p>Add failure cleanup behavior:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource meta SAPHana_HDB_00 failure-timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">180</span>
+</span></span></code></pre></div><p>Check status:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>You should eventually see one promoted HANA node and one unpromoted HANA node.</p>
+<hr>
+<h2 id="18-add-resource-ordering-and-colocation-constraints">18. Add Resource Ordering and Colocation Constraints<a hidden class="anchor" aria-hidden="true" href="#18-add-resource-ordering-and-colocation-constraints">#</a></h2>
+<p>The topology resource should start before the HANA resource:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs constraint order SAPHanaTopology_HDB_00-clone <span style="color:#66d9ef">then</span> SAPHana_HDB_00-clone symmetrical<span style="color:#f92672">=</span>false
+</span></span></code></pre></div><p>The Read/Write overlay IP should run with the promoted SAP HANA node:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs constraint colocation add hana-rw-ip with promoted SAPHana_HDB_00-clone <span style="color:#ae81ff">2000</span>
+</span></span></code></pre></div><p>Check constraints:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs constraint
+</span></span></code></pre></div><hr>
+<h2 id="19-create-the-read-only-overlay-ip">19. Create the Read-Only Overlay IP<a hidden class="anchor" aria-hidden="true" href="#19-create-the-read-only-overlay-ip">#</a></h2>
+<p>The Read-Only overlay IP normally follows the synchronized secondary node.</p>
+<p>Create the resource:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource create hana-ro-ip aws-vpc-move-ip <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  ip<span style="color:#f92672">=</span>10.10.10.82 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  routing_table<span style="color:#f92672">=</span>&lt;route-table-id&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  interface<span style="color:#f92672">=</span>eth0 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  profile<span style="color:#f92672">=</span>cluster <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  lookup_type<span style="color:#f92672">=</span>NetworkInterfaceId <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op start interval<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">180</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op stop interval<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">180</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  op monitor interval<span style="color:#f92672">=</span><span style="color:#ae81ff">60</span> timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">60</span>
+</span></span></code></pre></div><p>Add location rules:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs constraint location hana-ro-ip rule score<span style="color:#f92672">=</span>INFINITY <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  hana_hdb_sync_state eq SOK and <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  hana_hdb_roles eq 4:S:master1:master:worker:master
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs constraint location hana-ro-ip rule score<span style="color:#f92672">=</span><span style="color:#ae81ff">2000</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  hana_hdb_sync_state eq PRIM and <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>  hana_hdb_roles eq 4:P:master1:master:worker:master
+</span></span></code></pre></div><p>Check:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs constraint
+</span></span><span style="display:flex;"><span>pcs status
+</span></span></code></pre></div><p>Expected behavior:</p>
+<ul>
+<li>If primary and secondary are healthy and replication is synchronized, the Read-Only IP runs on the secondary.</li>
+<li>If the secondary is down or not synchronized, the Read-Only IP runs on the primary.</li>
+<li>After failover, the Read-Only IP remains where safe until the new secondary is registered and synchronized again.</li>
+</ul>
+<p>This is one of those details that makes the cluster feel a lot smarter than a simple “move everything to one node” design.</p>
+<hr>
+<h2 id="20-validate-the-cluster-state">20. Validate the Cluster State<a hidden class="anchor" aria-hidden="true" href="#20-validate-the-cluster-state">#</a></h2>
+<p>A healthy cluster should look conceptually like this:</p>
+<p><img alt="Figure 3 – Healthy Pacemaker Cluster State" loading="lazy" src="/images/hana-pcs-status.png"></p>
+<p><em>Figure 3 – Healthy cluster state showing both SAP HANA nodes online, the Read/Write overlay IP hosted on the primary node, and the Read-Only overlay IP hosted on the secondary node.</em></p>
+<p>Useful commands:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs status
+</span></span><span style="display:flex;"><span>crm_mon -Afr1
+</span></span></code></pre></div><p>Expected resource layout:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>aws-cluster-fence        Started
+</span></span><span style="display:flex;"><span>hana-rw-ip               Started hana-node-a
+</span></span><span style="display:flex;"><span>SAPHanaTopology_HDB_00   Started hana-node-a hana-node-b
+</span></span><span style="display:flex;"><span>SAPHana_HDB_00           Promoted hana-node-a
+</span></span><span style="display:flex;"><span>SAPHana_HDB_00           Unpromoted hana-node-b
+</span></span><span style="display:flex;"><span>hana-ro-ip               Started hana-node-b
+</span></span></code></pre></div><p>In <code>crm_mon -Afr1</code>, look for:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>hana_hdb_srmode        : syncmem
+</span></span><span style="display:flex;"><span>hana_hdb_sync_state    : PRIM
+</span></span><span style="display:flex;"><span>hana_hdb_sync_state    : SOK
+</span></span><span style="display:flex;"><span>hana_hdb_roles         : 4:P:master1:master:worker:master
+</span></span><span style="display:flex;"><span>hana_hdb_roles         : 4:S:master1:master:worker:master
+</span></span></code></pre></div><hr>
+<h2 id="21-configure-the-quorum-device">21. Configure the Quorum Device<a hidden class="anchor" aria-hidden="true" href="#21-configure-the-quorum-device">#</a></h2>
+<p>Two-node clusters are always tricky. A quorum device gives the cluster a third vote.</p>
+<p>On both HANA nodes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>dnf install -y corosync-qdevice
+</span></span></code></pre></div><p>On the quorum host:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>dnf install -y pcs corosync-qnetd
+</span></span><span style="display:flex;"><span>systemctl start pcsd.service
+</span></span><span style="display:flex;"><span>systemctl enable pcsd.service
+</span></span></code></pre></div><p>On the quorum host, initialize and start QNetd:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs qdevice setup model net --enable --start
+</span></span><span style="display:flex;"><span>pcs qdevice status net --full
+</span></span></code></pre></div><p>From one HANA node, authenticate the quorum host:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs host auth hana-qdevice-01
+</span></span></code></pre></div><p>Add the quorum device:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs quorum device add model net host<span style="color:#f92672">=</span>hana-qdevice-01 algorithm<span style="color:#f92672">=</span>ffsplit
+</span></span></code></pre></div><p>Check quorum:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs quorum status
+</span></span><span style="display:flex;"><span>pcs quorum device status
+</span></span></code></pre></div><p>Expected:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Expected votes:   3
+</span></span><span style="display:flex;"><span>Total votes:      3
+</span></span><span style="display:flex;"><span>Quorum:           2
+</span></span><span style="display:flex;"><span>Flags:            Quorate Qdevice
+</span></span></code></pre></div><p><img alt="Figure 5 – Corosync Quorum Validation" loading="lazy" src="/images/hana-quorum-status.png"></p>
+<p><em>Figure 5 – Quorum validation showing two SAP HANA cluster votes plus the additional vote provided by the dedicated quorum device.</em></p>
+<p>That third vote is cheap insurance. Use it.</p>
+<hr>
+<h2 id="22-add-custom-hana-preload-readiness-validation">22. Add Custom HANA Preload Readiness Validation<a hidden class="anchor" aria-hidden="true" href="#22-add-custom-hana-preload-readiness-validation">#</a></h2>
+<p>This is the part I like the most, because it solves a real operational problem.</p>
+<p>Replication can be healthy while the secondary is still not fully ready to take production load. The custom preload validation checks HANA trace files and publishes a Pacemaker node attribute:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>hana_hdb_preload_status
+</span></span></code></pre></div><p>Possible values:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>complete
+</span></span><span style="display:flex;"><span>pending
+</span></span></code></pre></div><p><img alt="Figure 4 – Replication and Preload Validation" loading="lazy" src="/images/hana-crm-mon-preload-status.png"></p>
+<p><em>Figure 4 – Cluster attributes showing replication state, synchronization health, and preload readiness validation for both SAP HANA nodes.</em></p>
+<p>This attribute can then be used by patching or maintenance automation before triggering failover.</p>
+<hr>
+<h2 id="23-create-the-preload-check-script">23. Create the Preload Check Script<a hidden class="anchor" aria-hidden="true" href="#23-create-the-preload-check-script">#</a></h2>
+<p>Create:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /usr/local/bin/check-hana-preload-status.sh
+</span></span></code></pre></div><p>Add:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e">#!/bin/bash
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>LOGFILE<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/var/log/pacemaker/pacemaker.log&#34;</span>
+</span></span><span style="display:flex;"><span>base_dir<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/usr/sap/HDB/HDB00/</span><span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span><span style="color:#e6db74">/trace&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>cd <span style="color:#e6db74">&#34;</span>$base_dir<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">||</span> exit <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>dbs<span style="color:#f92672">=(</span>DB_*<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>preload_complete<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> database in <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>dbs[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>    latest_file<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>ls -rt <span style="color:#e6db74">&#34;</span>$database<span style="color:#e6db74">&#34;</span>/indexserver_<span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span>.?????.???.trc 2&gt;/dev/null | tail -1<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -n <span style="color:#e6db74">&#34;</span>$latest_file<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>        result<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>grep <span style="color:#e6db74">&#34;isPreloadComplete&#34;</span> <span style="color:#e6db74">&#34;</span>$latest_file<span style="color:#e6db74">&#34;</span> | tail -1<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -z <span style="color:#e6db74">&#34;</span>$result<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>            echo <span style="color:#e6db74">&#34;No preload info found for </span>$database<span style="color:#e6db74"> — assuming preload complete&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">elif</span> echo <span style="color:#e6db74">&#34;</span>$result<span style="color:#e6db74">&#34;</span> | grep -q <span style="color:#e6db74">&#34;isPreloadComplete.*: 1&#34;</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>            echo <span style="color:#e6db74">&#34;Preload complete for </span>$database<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">else</span>
+</span></span><span style="display:flex;"><span>            echo <span style="color:#e6db74">&#34;Preload NOT complete for </span>$database<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>            preload_complete<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span>
+</span></span><span style="display:flex;"><span>        echo <span style="color:#e6db74">&#34;No trace file found for </span>$database<span style="color:#e6db74"> — assuming preload complete&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;Final result: </span>$preload_complete<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$preload_complete<span style="color:#e6db74">&#34;</span> -eq <span style="color:#ae81ff">1</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    crm_attribute --node<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      --name<span style="color:#f92672">=</span>hana_hdb_preload_status <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      --update<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;complete&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      --lifetime<span style="color:#f92672">=</span>reboot 2&gt;&gt;<span style="color:#e6db74">&#34;</span>$LOGFILE<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>date <span style="color:#e6db74">&#39;+%b %d %T&#39;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74"> HANA Preload Status: complete&#34;</span> &gt;&gt; <span style="color:#e6db74">&#34;</span>$LOGFILE<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> $? -ne <span style="color:#ae81ff">0</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>        echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">: Error updating hana_hdb_preload_status on </span><span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> &gt;&gt; <span style="color:#e6db74">&#34;</span>$LOGFILE<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>        exit <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">else</span>
+</span></span><span style="display:flex;"><span>    crm_attribute --node<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      --name<span style="color:#f92672">=</span>hana_hdb_preload_status <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      --update<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;pending&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>      --lifetime<span style="color:#f92672">=</span>reboot 2&gt;&gt;<span style="color:#e6db74">&#34;</span>$LOGFILE<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>date <span style="color:#e6db74">&#39;+%b %d %T&#39;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74"> HANA Preload Status: pending&#34;</span> &gt;&gt; <span style="color:#e6db74">&#34;</span>$LOGFILE<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> $? -ne <span style="color:#ae81ff">0</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>        echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>date<span style="color:#66d9ef">)</span><span style="color:#e6db74">: Error updating hana_hdb_preload_status on </span><span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> &gt;&gt; <span style="color:#e6db74">&#34;</span>$LOGFILE<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>        exit <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span></code></pre></div><p>Make it executable:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>chmod u+x /usr/local/bin/check-hana-preload-status.sh
+</span></span></code></pre></div><p>Run it manually once:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/usr/local/bin/check-hana-preload-status.sh
+</span></span></code></pre></div><p>Check the attribute:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crm_mon -Afr1 | grep hana_hdb_preload_status
+</span></span></code></pre></div><hr>
+<h2 id="24-create-the-systemd-service">24. Create the systemd Service<a hidden class="anchor" aria-hidden="true" href="#24-create-the-systemd-service">#</a></h2>
+<p>Create:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /usr/lib/systemd/system/hana-preload-check.service
+</span></span></code></pre></div><p>Add:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Unit]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Description</span><span style="color:#f92672">=</span><span style="color:#e6db74">Run HANA preload status check</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Type</span><span style="color:#f92672">=</span><span style="color:#e6db74">oneshot</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/usr/local/bin/check-hana-preload-status.sh</span>
+</span></span></code></pre></div><hr>
+<h2 id="25-create-the-systemd-timer">25. Create the systemd Timer<a hidden class="anchor" aria-hidden="true" href="#25-create-the-systemd-timer">#</a></h2>
+<p>Create:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /usr/lib/systemd/system/hana-preload-check.timer
+</span></span></code></pre></div><p>Add:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#66d9ef">[Unit]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Description</span><span style="color:#f92672">=</span><span style="color:#e6db74">Run preload check every 30 seconds</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Timer]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">OnBootSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">30s</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">OnUnitActiveSec</span><span style="color:#f92672">=</span><span style="color:#e6db74">30s</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">AccuracySec</span><span style="color:#f92672">=</span><span style="color:#e6db74">1s</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Unit</span><span style="color:#f92672">=</span><span style="color:#e6db74">hana-preload-check.service</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Install]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">WantedBy</span><span style="color:#f92672">=</span><span style="color:#e6db74">timers.target</span>
+</span></span></code></pre></div><p>Reload systemd:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl daemon-reload
+</span></span></code></pre></div><p>Enable and start the timer:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl enable --now hana-preload-check.timer
+</span></span></code></pre></div><p>Check:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl status hana-preload-check.timer
+</span></span><span style="display:flex;"><span>systemctl list-timers | grep hana-preload
+</span></span></code></pre></div><p>Check the cluster attribute again:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crm_mon -Afr1 | grep hana_hdb_preload_status
+</span></span></code></pre></div><p>This should eventually show:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>hana_hdb_preload_status : complete
+</span></span></code></pre></div><p>on the appropriate nodes.</p>
+<hr>
+<h2 id="26-final-validation-checklist">26. Final Validation Checklist<a hidden class="anchor" aria-hidden="true" href="#26-final-validation-checklist">#</a></h2>
+<p>Before calling this production-ready, validate each item.</p>
+<h3 id="cluster-health">Cluster Health<a hidden class="anchor" aria-hidden="true" href="#cluster-health">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs status
+</span></span><span style="display:flex;"><span>crm_mon -Afr1
+</span></span></code></pre></div><p>Confirm:</p>
+<ul>
+<li>Both nodes online</li>
+<li>STONITH started</li>
+<li>HANA topology running on both nodes</li>
+<li>One HANA resource promoted</li>
+<li>One HANA resource unpromoted</li>
+<li>Read/Write IP on promoted node</li>
+<li>Read-Only IP on secondary node when replication is synchronized</li>
+</ul>
+<h3 id="stonith">STONITH<a hidden class="anchor" aria-hidden="true" href="#stonith">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs stonith fence hana-node-a
+</span></span><span style="display:flex;"><span>pcs stonith history cleanup
+</span></span></code></pre></div><p>Repeat for the other node during a controlled maintenance window.</p>
+<h3 id="overlay-ips">Overlay IPs<a hidden class="anchor" aria-hidden="true" href="#overlay-ips">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs resource move hana-rw-ip
+</span></span><span style="display:flex;"><span>pcs status
+</span></span><span style="display:flex;"><span>pcs resource clear hana-rw-ip
+</span></span></code></pre></div><p>Also verify the AWS route table updates.</p>
+<h3 id="hana-replication-attributes">HANA Replication Attributes<a hidden class="anchor" aria-hidden="true" href="#hana-replication-attributes">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crm_mon -Afr1
+</span></span></code></pre></div><p>Look for:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>hana_hdb_sync_state : PRIM
+</span></span><span style="display:flex;"><span>hana_hdb_sync_state : SOK
+</span></span><span style="display:flex;"><span>hana_hdb_srmode     : syncmem
+</span></span></code></pre></div><h3 id="quorum">Quorum<a hidden class="anchor" aria-hidden="true" href="#quorum">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pcs quorum status
+</span></span></code></pre></div><p>Look for:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Expected votes: 3
+</span></span><span style="display:flex;"><span>Total votes: 3
+</span></span><span style="display:flex;"><span>Flags: Quorate Qdevice
+</span></span></code></pre></div><h3 id="preload-readiness">Preload Readiness<a hidden class="anchor" aria-hidden="true" href="#preload-readiness">#</a></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crm_mon -Afr1 | grep hana_hdb_preload_status
+</span></span></code></pre></div><p>Look for:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>hana_hdb_preload_status : complete
+</span></span></code></pre></div><hr>
+<h2 id="27-example-healthy-state">27. Example Healthy State<a hidden class="anchor" aria-hidden="true" href="#27-example-healthy-state">#</a></h2>
+<p>A healthy cluster should tell a clear story:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>hana-node-a:
+</span></span><span style="display:flex;"><span>  promoted
+</span></span><span style="display:flex;"><span>  primary
+</span></span><span style="display:flex;"><span>  owns Read/Write IP
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>hana-node-b:
+</span></span><span style="display:flex;"><span>  unpromoted
+</span></span><span style="display:flex;"><span>  secondary
+</span></span><span style="display:flex;"><span>  synchronized
+</span></span><span style="display:flex;"><span>  owns Read-Only IP
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>hana-qdevice-01:
+</span></span><span style="display:flex;"><span>  contributes quorum vote
+</span></span></code></pre></div><p>If the output does not tell that story, do not ignore it.</p>
+<p>The cluster is usually telling you something. Sometimes it whispers. Sometimes it screams. Either way, listen.</p>
+<hr>
+<h2 id="lessons-learned">Lessons Learned<a hidden class="anchor" aria-hidden="true" href="#lessons-learned">#</a></h2>
+<h3 id="disable-sourcedestination-check-early">Disable Source/Destination Check Early<a hidden class="anchor" aria-hidden="true" href="#disable-sourcedestination-check-early">#</a></h3>
+<p>If overlay IPs are not behaving, check this before going too deep into Pacemaker.</p>
+<h3 id="let-pacemaker-own-recovery">Let Pacemaker Own Recovery<a hidden class="anchor" aria-hidden="true" href="#let-pacemaker-own-recovery">#</a></h3>
+<p>AWS Auto Recovery is useful, but not for this workload. The cluster should own the recovery decision.</p>
+<h3 id="test-stonith">Test STONITH<a hidden class="anchor" aria-hidden="true" href="#test-stonith">#</a></h3>
+<p>Configured is not the same as tested. A cluster with untested fencing is a polite disaster waiting for the right moment.</p>
+<h3 id="validate-iam-permissions-early">Validate IAM Permissions Early<a hidden class="anchor" aria-hidden="true" href="#validate-iam-permissions-early">#</a></h3>
+<p>If route movement or fencing fails, check IAM before blaming the resource agent.</p>
+<h3 id="keep-names-consistent">Keep Names Consistent<a hidden class="anchor" aria-hidden="true" href="#keep-names-consistent">#</a></h3>
+<p>Use the same hostnames everywhere: cluster setup, STONITH maps, <code>/etc/hosts</code>, constraints, and documentation.</p>
+<h3 id="quorum-devices-are-worth-it">Quorum Devices Are Worth It<a hidden class="anchor" aria-hidden="true" href="#quorum-devices-are-worth-it">#</a></h3>
+<p>A lightweight quorum host gives a two-node cluster a third vote. That is a very good trade.</p>
+<h3 id="replication-is-not-readiness">Replication Is Not Readiness<a hidden class="anchor" aria-hidden="true" href="#replication-is-not-readiness">#</a></h3>
+<p>This was the big operational lesson.</p>
+<p><code>SOK</code> means replication is synchronized. It does not necessarily mean the secondary is fully preloaded and ready for production traffic.</p>
+<p>The <code>hana_hdb_preload_status</code> attribute closes that visibility gap.</p>
+<hr>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>Building SAP HANA High Availability on AWS requires more than simply enabling System Replication.</p>
+<p>A production-ready design needs:</p>
+<ul>
+<li>Reliable fencing</li>
+<li>Predictable client connectivity</li>
+<li>AWS route-table overlay IPs</li>
+<li>HANA-aware Pacemaker resources</li>
+<li>Replication hooks</li>
+<li>Quorum protection</li>
+<li>Operational validation</li>
+<li>Preload readiness awareness</li>
+</ul>
+<p>When these layers work together, the result is a cluster that does more than fail over. It fails over in a way that is controlled, observable, and safe.</p>
+<p>And that is the whole point.</p>
+<p>High Availability is not magic.</p>
+<p>It is a collection of boring details done correctly.</p>
+<p>Unfortunately, the boring details are usually the ones that save you at 2 AM.</p>
+<hr>
+<h2 id="references">References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h2>
+<ul>
+<li>Red Hat documentation for automating SAP HANA scale-up System Replication using the RHEL HA Add-On.</li>
+<li>Red Hat documentation for quorum devices with Corosync QNetd.</li>
+<li>AWS documentation for SAP HANA on AWS and SAPHanaSR hooks.</li>
+<li>Project implementation notes sanitized for public publication.</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://opsunderpressure.xyz/tags/sap-hana/">SAP HANA</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/aws/">AWS</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/pacemaker/">Pacemaker</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/rhel/">RHEL</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/high-availability/">High Availability</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/corosync/">Corosync</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/stonith/">STONITH</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/">
+    <span class="title">Next »</span>
+    <span>The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on x"
+            href="https://x.com/intent/tweet/?text=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker&amp;url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f&amp;hashtags=SAPHANA%2cAWS%2cPacemaker%2cRHEL%2cHighAvailability%2cCorosync%2cSTONITH">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f&amp;title=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker&amp;summary=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker&amp;source=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on reddit"
+            href="https://reddit.com/submit?url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f&title=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on whatsapp"
+            href="https://api.whatsapp.com/send?text=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker%20-%20https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-58.673,127.703c-33.842,-33.881 -78.847,-52.548 -126.798,-52.568c-98.799,0 -179.21,80.405 -179.249,179.234c-0.013,31.593 8.241,62.428 23.927,89.612l-25.429,92.884l95.021,-24.925c26.181,14.28 55.659,21.807 85.658,21.816l0.074,0c98.789,0 179.206,-80.413 179.247,-179.243c0.018,-47.895 -18.61,-92.93 -52.451,-126.81Zm-126.797,275.782l-0.06,0c-26.734,-0.01 -52.954,-7.193 -75.828,-20.767l-5.441,-3.229l-56.386,14.792l15.05,-54.977l-3.542,-5.637c-14.913,-23.72 -22.791,-51.136 -22.779,-79.287c0.033,-82.142 66.867,-148.971 149.046,-148.971c39.793,0.014 77.199,15.531 105.329,43.692c28.128,28.16 43.609,65.592 43.594,105.4c-0.034,82.149 -66.866,148.983 -148.983,148.984Zm81.721,-111.581c-4.479,-2.242 -26.499,-13.075 -30.604,-14.571c-4.105,-1.495 -7.091,-2.241 -10.077,2.241c-2.986,4.483 -11.569,14.572 -14.182,17.562c-2.612,2.988 -5.225,3.364 -9.703,1.12c-4.479,-2.241 -18.91,-6.97 -36.017,-22.23c-13.314,-11.876 -22.304,-26.542 -24.916,-31.026c-2.612,-4.484 -0.279,-6.908 1.963,-9.14c2.016,-2.007 4.48,-5.232 6.719,-7.847c2.24,-2.615 2.986,-4.484 4.479,-7.472c1.493,-2.99 0.747,-5.604 -0.374,-7.846c-1.119,-2.241 -10.077,-24.288 -13.809,-33.256c-3.635,-8.733 -7.327,-7.55 -10.077,-7.688c-2.609,-0.13 -5.598,-0.158 -8.583,-0.158c-2.986,0 -7.839,1.121 -11.944,5.604c-4.105,4.484 -15.675,15.32 -15.675,37.364c0,22.046 16.048,43.342 18.287,46.332c2.24,2.99 31.582,48.227 76.511,67.627c10.685,4.615 19.028,7.371 25.533,9.434c10.728,3.41 20.492,2.929 28.209,1.775c8.605,-1.285 26.499,-10.833 30.231,-21.295c3.732,-10.464 3.732,-19.431 2.612,-21.298c-1.119,-1.869 -4.105,-2.99 -8.583,-5.232Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on telegram"
+            href="https://telegram.me/share/url?text=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker&amp;url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share SAP HANA High Availability on AWS with Pacemaker on ycombinator"
+            href="https://news.ycombinator.com/submitlink?t=SAP%20HANA%20High%20Availability%20on%20AWS%20with%20Pacemaker&u=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fsap-hana-ha-aws-complete-guide%2f">
+            <svg version="1.1" xml:space="preserve" width="30px" height="30px" viewBox="0 0 512 512" fill="currentColor"
+                xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+                <path
+                    d="M449.446 0C483.971 0 512 28.03 512 62.554L512 449.446C512 483.97 483.97 512 449.446 512L62.554 512C28.03 512 0 483.97 0 449.446L0 62.554C0 28.03 28.029 0 62.554 0L449.446 0ZM183.8767 87.9921H121.8427L230.6673 292.4508V424.0079H281.3328V292.4508L390.1575 87.9921H328.1233L256 238.2489z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="https://opsunderpressure.xyz/">Ops Under Pressure</a></span> · 
+
+    
+    
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
