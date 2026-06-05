@@ -363,7 +363,53 @@ Use your security standards, but make sure the cluster nodes can actually talk t
 
 ---
 
-## 7. Install Cluster Packages
+## 7. Create Internal Network Load Balancers
+
+The overlay IPs provide the failover targets, but clients still need stable endpoints to connect to.
+
+In this design, two internal AWS Network Load Balancers sit in front of the overlay IPs:
+
+| Load Balancer | Purpose | Target |
+|---|---|---|
+| `hana-rw-nlb` | Read/Write HANA traffic | `10.10.10.81` |
+| `hana-ro-nlb` | Read-Only HANA traffic | `10.10.10.82` |
+
+Each load balancer uses TCP listeners for the required SAP HANA ports. Each listener forwards to an IP-based target group, and each target group registers the corresponding overlay IP as its target.
+
+The important detail is that the load balancers do not decide which HANA node is primary or secondary. Pacemaker still owns that decision.
+
+The load balancers provide stable client entry points. Pacemaker moves the overlay routes underneath them.
+
+Conceptually:
+
+```text
+Client
+  |
+Internal Network Load Balancer
+  |
+Overlay IP target
+  |
+AWS Route Table
+  |
+Network Interface
+  |
+Current SAP HANA owner
+```
+
+Build the load balancer layer with:
+
+- One internal Network Load Balancer for Read/Write traffic.
+- One internal Network Load Balancer for Read-Only traffic.
+- TCP listeners for the required SAP HANA ports.
+- IP target groups for each listener.
+- Target group attachments pointing to the appropriate overlay IP.
+- Cross-zone load balancing enabled across the selected application subnets.
+
+This keeps the client endpoint stable while still allowing Pacemaker to control actual HANA ownership through route-table updates.
+
+---
+
+## 8. Install Cluster Packages
 
 On both HANA nodes:
 
@@ -397,7 +443,7 @@ getent group haclient
 
 ---
 
-## 8. Authenticate the Cluster Nodes
+## 9. Authenticate the Cluster Nodes
 
 From one HANA node:
 
@@ -409,7 +455,7 @@ Use the `hacluster` credentials when prompted.
 
 ---
 
-## 9. Create the Pacemaker Cluster
+## 10. Create the Pacemaker Cluster
 
 Create and start the cluster:
 
@@ -440,7 +486,7 @@ At this point, the cluster should be running, but it should not yet manage SAP H
 
 ---
 
-## 10. Install and Configure AWS CLI
+## 11. Install and Configure AWS CLI
 
 The AWS fencing and overlay IP agents need AWS access.
 
@@ -479,7 +525,7 @@ profile=cluster
 
 ---
 
-## 11. Configure STONITH with fence_aws
+## 12. Configure STONITH with fence_aws
 
 Install the AWS fence agent if not already installed:
 
@@ -530,7 +576,7 @@ If fencing does not work, stop here. Do not keep building the cluster pretending
 
 ---
 
-## 12. Create the Read/Write Overlay IP
+## 13. Create the Read/Write Overlay IP
 
 The Read/Write overlay IP follows the promoted SAP HANA node.
 
@@ -571,7 +617,7 @@ This test confirms that the cluster can update AWS route tables.
 
 ---
 
-## 13. Configure SAPHanaSR Hooks
+## 14. Configure SAPHanaSR Hooks
 
 Copy the hooks to a shared location visible to HANA:
 
@@ -619,7 +665,7 @@ You want to see that the providers are loaded cleanly.
 
 ---
 
-## 14. Configure sudoers for SAPHanaSR Hooks
+## 15. Configure sudoers for SAPHanaSR Hooks
 
 The hook needs to write SAP HANA replication state into Pacemaker cluster attributes.
 
@@ -651,7 +697,7 @@ visudo -c
 
 ---
 
-## 15. Disable Native SAP HANA systemd Startup
+## 16. Disable Native SAP HANA systemd Startup
 
 Pacemaker should manage HANA, not systemd.
 
@@ -665,7 +711,7 @@ Do not let systemd and Pacemaker both try to own HANA startup.
 
 ---
 
-## 16. Create the SAPHanaTopology Resource
+## 17. Create the SAPHanaTopology Resource
 
 Create the topology resource:
 
@@ -689,7 +735,7 @@ The topology clone should run on both HANA nodes.
 
 ---
 
-## 17. Create the SAPHana Resource
+## 18. Create the SAPHana Resource
 
 Create the promotable HANA resource:
 
@@ -725,7 +771,7 @@ You should eventually see one promoted HANA node and one unpromoted HANA node.
 
 ---
 
-## 18. Add Resource Ordering and Colocation Constraints
+## 19. Add Resource Ordering and Colocation Constraints
 
 The topology resource should start before the HANA resource:
 
@@ -747,7 +793,7 @@ pcs constraint
 
 ---
 
-## 19. Create the Read-Only Overlay IP
+## 20. Create the Read-Only Overlay IP
 
 The Read-Only overlay IP normally follows the synchronized secondary node.
 
@@ -796,7 +842,7 @@ This is one of those details that makes the cluster feel a lot smarter than a si
 
 ---
 
-## 20. Validate the Cluster State
+## 21. Validate the Cluster State
 
 A healthy cluster should look conceptually like this:
 
@@ -834,7 +880,7 @@ hana_hdb_roles         : 4:S:master1:master:worker:master
 
 ---
 
-## 21. Configure the Quorum Device
+## 22. Configure the Quorum Device
 
 Two-node clusters are always tricky. A quorum device gives the cluster a third vote.
 
@@ -895,7 +941,7 @@ That third vote is cheap insurance. Use it.
 
 ---
 
-## 22. Add Custom HANA Preload Readiness Validation
+## 23. Add Custom HANA Preload Readiness Validation
 
 This is the part I like the most, because it solves a real operational problem.
 
@@ -920,7 +966,7 @@ This attribute can then be used by patching or maintenance automation before tri
 
 ---
 
-## 23. Create the Preload Check Script
+## 24. Create the Preload Check Script
 
 Create:
 
@@ -1009,7 +1055,7 @@ crm_mon -Afr1 | grep hana_hdb_preload_status
 
 ---
 
-## 24. Create the systemd Service
+## 25. Create the systemd Service
 
 Create:
 
@@ -1030,7 +1076,7 @@ ExecStart=/usr/local/bin/check-hana-preload-status.sh
 
 ---
 
-## 25. Create the systemd Timer
+## 26. Create the systemd Timer
 
 Create:
 
@@ -1089,7 +1135,7 @@ on the appropriate nodes.
 
 ---
 
-## 26. Final Validation Checklist
+## 27. Final Validation Checklist
 
 Before calling this production-ready, validate each item.
 
@@ -1171,7 +1217,7 @@ hana_hdb_preload_status : complete
 
 ---
 
-## 27. Example Healthy State
+## 28. Example Healthy State
 
 A healthy cluster should tell a clear story:
 
