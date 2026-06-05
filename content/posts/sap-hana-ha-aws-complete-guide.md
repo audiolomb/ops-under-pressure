@@ -1262,6 +1262,10 @@ Unfortunately, the boring details are usually the ones that save you at 2 AM.
 
 ## References
 
+- [Red Hat: Configure SAP HANA in a Pacemaker cluster on AWS](https://access.redhat.com/articles/3569621#configure-sap-hana-in-pacemaker-cluster-on-aws)
+- [Red Hat: Enable the SAPHanaSR hook](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_for_sap_solutions/9/html/automating_sap_hana_scale-up_system_replication_using_the_rhel_ha_add-on/asmb_config_ha_cluster_v9-automating-sap-hana-scale-up-system-replication#con_enable_hook_v9-automating-sap-hana-scale-up-system-replication)
+- [Red Hat: Create location constraints for SAP HANA resources](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_for_sap_solutions/9/html/automating_sap_hana_scale-up_system_replication_using_the_rhel_ha_add-on/asmb_config_ha_cluster_v9-automating-sap-hana-scale-up-system-replication#con_create_loc_constraint_v9-automating-sap-hana-scale-up-system-replication)
+- [AWS: Implementing the Python hook SAPHanaSR in RHEL](https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-implementing-the-python-hook-saphanasr-in-rhel.html)
 - Red Hat documentation for automating SAP HANA scale-up System Replication using the RHEL HA Add-On.
 - Red Hat documentation for quorum devices with Corosync QNetd.
 - AWS documentation for SAP HANA on AWS and SAPHanaSR hooks.
