@@ -3,57 +3,78 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://localhost:1313/categories/</loc>
+    <loc>https://opsunderpressure.xyz/posts/architecting-sap-hana-high-availability-on-aws-full/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/aws/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/categories/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/high-availability/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/categories/infrastructure-architecture/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/pacemaker/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/posts/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/rhel/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/sap-hana/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/</loc>
+    <lastmod>2026-06-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://opsunderpressure.xyz/tags/grub/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/grub/</loc>
+    <loc>https://opsunderpressure.xyz/tags/hyper-v/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/hyper-v/</loc>
+    <loc>https://opsunderpressure.xyz/tags/infrastructure/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/infrastructure/</loc>
+    <loc>https://opsunderpressure.xyz/categories/linux/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/categories/linux/</loc>
+    <loc>https://opsunderpressure.xyz/tags/linux/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/linux/</loc>
+    <loc>https://opsunderpressure.xyz/tags/lvm/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/lvm/</loc>
+    <loc>https://opsunderpressure.xyz/tags/migration/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/migration/</loc>
+    <loc>https://opsunderpressure.xyz/categories/operations/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/categories/operations/</loc>
+    <loc>https://opsunderpressure.xyz/tags/rhel5/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/</loc>
+    <loc>https://opsunderpressure.xyz/tags/sysadmin/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/posts/</loc>
+    <loc>https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/rhel5/</loc>
+    <loc>https://opsunderpressure.xyz/categories/virtualization/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/sysadmin/</loc>
+    <loc>https://opsunderpressure.xyz/tags/virtualization/</loc>
     <lastmod>2026-06-04T12:00:00-07:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/</loc>
-    <lastmod>2026-06-04T12:00:00-07:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</loc>
-    <lastmod>2026-06-04T12:00:00-07:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/categories/virtualization/</loc>
-    <lastmod>2026-06-04T12:00:00-07:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/virtualization/</loc>
-    <lastmod>2026-06-04T12:00:00-07:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/about/</loc>
+    <loc>https://opsunderpressure.xyz/about/</loc>
   </url>
 </urlset>

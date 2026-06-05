@@ -2,17 +2,24 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Posts on Ops Under Pressure</title>
-    <link>http://localhost:1313/posts/</link>
+    <link>https://opsunderpressure.xyz/posts/</link>
     <description>Recent content in Posts on Ops Under Pressure</description>
     <generator>Hugo</generator>
     <language>en-US</language>
-    <lastBuildDate>Thu, 04 Jun 2026 12:00:00 -0700</lastBuildDate>
-    <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 05 Jun 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://opsunderpressure.xyz/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Architecting SAP HANA High Availability on AWS</title>
+      <link>https://opsunderpressure.xyz/posts/architecting-sap-hana-high-availability-on-aws-full/</link>
+      <pubDate>Fri, 05 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>https://opsunderpressure.xyz/posts/architecting-sap-hana-high-availability-on-aws-full/</guid>
+      <description>Building a production-ready SAP HANA cluster using Pacemaker, AWS-integrated STONITH fencing, overlay IPs, quorum devices, and preload readiness validation.</description>
+    </item>
     <item>
       <title>The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode</title>
-      <link>http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</link>
+      <link>https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</link>
       <pubDate>Thu, 04 Jun 2026 12:00:00 -0700</pubDate>
-      <guid>http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</guid>
+      <guid>https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</guid>
       <description>A real-world RHEL 5 to Hyper-V migration story covering rescue mode, LVM activation, GRUB cleanup, initrd rebuilds, and Hyper-V driver surprises.</description>
     </item>
   </channel>

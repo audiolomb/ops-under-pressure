@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="en" dir="auto" data-theme="auto">
 
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<head><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="index, follow">
 <title>The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode | Ops Under Pressure</title>
 <meta name="keywords" content="rhel5, hyper-v, linux, migration, virtualization, lvm, grub, sysadmin, infrastructure">
 <meta name="description" content="A real-world RHEL 5 to Hyper-V migration story covering rescue mode, LVM activation, GRUB cleanup, initrd rebuilds, and Hyper-V driver surprises.">
 <meta name="author" content="Claudio Lombardo">
-<link rel="canonical" href="http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/">
+<link rel="canonical" href="https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.89ca4972ab5e6aaa05e9a0dae0c4bb64b26585bc79e36f5cf33614eea0283abe.css" integrity="sha256-icpJcqteaqoF6aDa4MS7ZLJlhbx5429c8zYU7qAoOr4=" rel="preload stylesheet" as="style">
-<link rel="icon" href="http://localhost:1313/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
-<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
-<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<link rel="icon" href="https://opsunderpressure.xyz/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://opsunderpressure.xyz/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://opsunderpressure.xyz/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://opsunderpressure.xyz/apple-touch-icon.png">
+<link rel="mask-icon" href="https://opsunderpressure.xyz/safari-pinned-tab.svg">
 <meta name="theme-color" content="#2e2e33">
 <meta name="msapplication-TileColor" content="#2e2e33">
-<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/">
+<link rel="alternate" hreflang="en" href="https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/">
 <noscript>
     <style>
         #theme-toggle,
@@ -64,13 +64,86 @@
         document.querySelector("html").dataset.theme = 'light';
     }
 
+</script><meta property="og:url" content="https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/">
+  <meta property="og:site_name" content="Ops Under Pressure">
+  <meta property="og:title" content="The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode">
+  <meta property="og:description" content="A real-world RHEL 5 to Hyper-V migration story covering rescue mode, LVM activation, GRUB cleanup, initrd rebuilds, and Hyper-V driver surprises.">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-06-04T12:00:00-07:00">
+    <meta property="article:modified_time" content="2026-06-04T12:00:00-07:00">
+    <meta property="article:tag" content="Rhel5">
+    <meta property="article:tag" content="Hyper-V">
+    <meta property="article:tag" content="Linux">
+    <meta property="article:tag" content="Migration">
+    <meta property="article:tag" content="Virtualization">
+    <meta property="article:tag" content="Lvm">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode">
+  <meta name="twitter:description" content="A real-world RHEL 5 to Hyper-V migration story covering rescue mode, LVM activation, GRUB cleanup, initrd rebuilds, and Hyper-V driver surprises.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://opsunderpressure.xyz/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode",
+      "item": "https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode",
+  "name": "The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode",
+  "description": "A real-world RHEL 5 to Hyper-V migration story covering rescue mode, LVM activation, GRUB cleanup, initrd rebuilds, and Hyper-V driver surprises.",
+  "keywords": [
+    "rhel5", "hyper-v", "linux", "migration", "virtualization", "lvm", "grub", "sysadmin", "infrastructure"
+  ],
+  "articleBody": "A few weeks ago I had to migrate a RHEL 5 server to Hyper-V.\nYes, RHEL 5.\nReleased in 2007.\nOld enough to drive in some states.\nNaturally, this server was still important. Because of course it was.\nNobody keeps legacy servers around because they are fun. They stay around because they run something important, mysterious, undocumented, or all three.\nSo there I was, staring at a server that had survived multiple generations of hardware, operating systems, hypervisors, managers, and probably a few organizational charts.\nThe plan sounded simple:\nMove the server to Hyper-V.\nThat sentence should come with a warning label.\nEverything Looked Fine Until It Didn’t The migration itself looked normal at first.\nThe disk conversion completed.\nThe VM powered on.\nThe BIOS screen appeared.\nGRUB loaded.\nLinux started booting.\nAnd then the server basically said:\nNice try. Rescue mode it is.\nAt that point, the maintenance window got very quiet.\nEvery infrastructure engineer knows that silence. It is the sound of people trying not to ask, “So… how bad is it?”\nThe Problem With Old Linux Migrations The problem was not really Hyper-V.\nHyper-V was doing what Hyper-V does.\nThe problem was that RHEL 5 was trying to boot in a virtual hardware environment it was not originally prepared for.\nOld Linux systems tend to make assumptions about:\nStorage controllers Disk names LVM availability Initrd contents Network adapters GRUB root devices Those assumptions work great until you move the system somewhere else.\nThen they become little landmines.\nStep 1: Boot Into Rescue Mode The first step was to boot from the RHEL 5 ISO and enter rescue mode.\nAt the boot prompt:\nlinux rescue The installer may ask whether it should automatically mount the installed system.\nIn this case, that did not work cleanly.\nThat was fine.\nHonestly, with RHEL 5, “that did not work cleanly” is less of a surprise and more of a lifestyle.\nEventually I got to a rescue shell:\nsh-3.2# Now the real work could start.\nStep 2: Activate LVM Before Doing Anything Else This was mandatory.\nThe installed system was using LVM, and rescue mode was not going to magically make everything available in the way I needed.\nFrom the rescue shell, before chrooting, I ran:\nlvm pvscan lvm vgscan lvm vgchange -ay lvs The goal was simple:\nFind the physical volumes Find the volume groups Activate the logical volumes Confirm the root volume was visible Once the logical volumes showed as active, things started looking much better.\nThis was the first moment where I thought:\nOK. Maybe this thing is not completely dead.\nAlways a comforting thought during a maintenance window.\nStep 3: Mount the Installed Root Filesystem Manually Once LVM was active, I mounted the installed root filesystem manually.\nIn this example, the root logical volume is genericized as /dev/vg00/lv00:\nmkdir -p /mnt/sysimage mount /dev/vg00/lv00 /mnt/sysimage Then I checked whether it looked like a real Linux installation:\nls /mnt/sysimage I wanted to see directories like:\nbin boot etc lib sbin usr var When those showed up, that was a good sign.\nNot victory.\nJust a good sign.\nWith legacy systems, celebrate small wins quietly. The server can hear confidence.\nStep 4: Mount /boot If It Is Separate On this system, /boot was separate.\nUsing a generic example partition:\nmkdir -p /mnt/sysimage/boot mount /dev/sda1 /mnt/sysimage/boot Then I verified the boot files:\nls /mnt/sysimage/boot I expected to see things like:\ngrub vmlinuz-* initrd-* If the mount complains that the device or mount point is busy, do not panic. Check whether it is already mounted, unmount it if needed, and mount it again cleanly:\numount /mnt/sysimage/boot mount /dev/sda1 /mnt/sysimage/boot This is one of those moments where being careful matters more than being fast.\nFast is how you turn a recoverable migration into a resume-generating event.\nStep 5: Bind-Mount Kernel Filesystems This was the step that really mattered.\nBefore rebuilding the initrd, the installed system needs access to /dev, /proc, and /sys.\nWithout this, mkinitrd can fail with errors like:\nerror opening /sys/block: No such file or directory So before chrooting, I ran:\nmount -o bind /dev /mnt/sysimage/dev mount -o bind /proc /mnt/sysimage/proc mount -o bind /sys /mnt/sysimage/sys This is the kind of detail that generic migration guides love to skip.\nUnfortunately, this is also the kind of detail that decides whether your server boots or whether you spend the rest of the night questioning your career choices.\nStep 6: Chroot Into the Installed System Once the filesystems were mounted correctly, I entered the installed operating system environment:\nchroot /mnt/sysimage At that point, I was working inside the installed RHEL 5 system, not just the rescue environment.\nThat distinction matters.\nA lot.\nStep 7: Identify the Installed Kernel Version Do not blindly use uname -r from the rescue environment.\nThat can show the rescue kernel, not necessarily the installed system kernel.\nInstead, I checked the installed modules:\nls -1 /lib/modules I also checked /boot:\nls -1 /boot/vmlinuz-* And confirmed what GRUB was trying to boot:\ngrep \"^kernel\" /boot/grub/grub.conf In my case, the target kernel was:\n2.6.18-440.el5 Use the kernel version that actually exists on your migrated system.\nDo not copy and paste kernel versions from blog posts.\nIncluding this one.\nEspecially this one.\nStep 8: Make GRUB Boring GRUB is not where I want creativity during a migration.\nI reviewed:\nvi /boot/grub/grub.conf For this migration, I made sure the kernel line used the LVM root path directly instead of something more fragile or confusing:\nroot=/dev/vg00/lv00 Example:\nkernel /vmlinuz-2.6.18-440.el5 ro root=/dev/vg00/lv00 rhgb quiet Could UUIDs work?\nSure.\nCould labels work?\nAlso yes.\nBut in this case, using the explicit LVM root path made the boot process easier to reason about while troubleshooting.\nAnd during a maintenance window, “easy to reason about” beats “technically elegant” every time.\nStep 9: Rebuild the Initrd With Hyper-V Drivers This was the heart of the fix.\nThe migrated server needed an initrd that understood the Hyper-V environment.\nSo I rebuilt the initrd with the Hyper-V modules explicitly included:\nmkinitrd -f \\ --with=hv_vmbus \\ --with=hv_storvsc \\ --with=hv_netvsc \\ /boot/initrd-2.6.18-440.el5.img \\ 2.6.18-440.el5 The important modules were:\nhv_vmbus hv_storvsc hv_netvsc Translated into normal human language:\nHyper-V bus support Hyper-V storage support Hyper-V network support Without the right drivers in the initrd, the kernel may start booting but fail before it can properly access the root filesystem.\nThat is when you get the classic legacy Linux migration experience:\nIt worked fine before we moved it.\nYes.\nThat is usually the point.\nStep 10: Validate the Initrd Exists After rebuilding the initrd, I verified that the file existed:\nls -lh /boot/initrd-2.6.18-440.el5.img If you want to inspect it more deeply on RHEL 5, you can unpack it temporarily:\nmkdir -p /tmp/initrdcheck cd /tmp/initrdcheck zcat /boot/initrd-2.6.18-440.el5.img | cpio -idmv find . -name 'hv_*.ko*' -o -name lvm cd / rm -rf /tmp/initrdcheck This is not always necessary, but when you are troubleshooting an old system, trust but verify.\nActually, with old systems, maybe just verify.\nTrust is how you get paged.\nStep 11: Exit Cleanly and Reboot Once the initrd was rebuilt, I exited the chroot:\nexit Optionally, unmount everything in reverse order:\numount /mnt/sysimage/sys umount /mnt/sysimage/proc umount /mnt/sysimage/dev umount /mnt/sysimage/boot umount /mnt/sysimage Then came the moment of truth:\nreboot Every engineer knows this part.\nYou watch the console.\nYou stop talking.\nYou pretend to be calm.\nYou are not calm.\nGRUB loads.\nThe kernel starts.\nThe initrd loads.\nLVM activates.\nThe root filesystem mounts.\nAnd then, finally, the login prompt appears.\nThat login prompt is one of the most beautiful things in infrastructure.\nRight up there with clean backups and change windows that end early.\nStep 12: Do Not Declare Victory Too Early A login prompt does not mean the migration is done.\nIt means the operating system booted.\nThat is only one boss battle.\nAfter boot, I still validated:\ndf -h mount ifconfig -a route -n Then I checked:\nApplication services Database connectivity Scheduled jobs Mount points Monitoring agents Backup agents Licensing Anything hardcoded to old hardware The application owner still needs to test the application.\nInfrastructure can prove that the server is alive.\nOnly the application owner can prove that the application is actually useful.\nThere is a difference.\nA painful difference.\nWhat Actually Fixed It The winning combination was:\nBoot from RHEL 5 rescue media Activate LVM manually Mount the installed root filesystem Mount /boot Bind /dev, /proc, and /sys Chroot into the installed system Identify the real installed kernel Ensure GRUB points to the correct LVM root Rebuild the initrd with Hyper-V drivers Reboot and validate everything The most important command was probably this one:\nmkinitrd -f \\ --with=hv_vmbus \\ --with=hv_storvsc \\ --with=hv_netvsc \\ /boot/initrd-2.6.18-440.el5.img \\ 2.6.18-440.el5 That is the command that made the old operating system understand enough about its new Hyper-V home to boot properly.\nLessons Learned The funny thing about legacy servers is that they are often legacy because they are important.\nNobody wants to upgrade them.\nNobody wants to replace them.\nNobody wants to document them.\nBut everybody wants them online.\nSo they sit there for years, quietly running critical workloads until one day someone says:\nWe just need to move it.\nAnd that is how the adventure begins.\nMy main lessons from this migration:\nAssume the first boot will fail. Confirm LVM before blaming anything else. Do not trust rescue mode to mount everything correctly. Bind-mount /dev, /proc, and /sys before rebuilding initrd. Do not use the rescue kernel version by mistake. Make GRUB simple. Explicitly include Hyper-V drivers in the initrd. Keep your notes clean enough that future you can understand them. Future you is tired.\nFuture you is probably under pressure.\nBe nice to future you.\nFinal Thoughts Would I recommend running RHEL 5 in production today?\nAbsolutely not.\nWould I bet there are still plenty of RHEL 5 servers out there running important things?\nAbsolutely yes.\nThat is the reality of enterprise IT.\nNot everything is greenfield.\nNot everything is cloud-native.\nNot everything has a clean Terraform module and a beautiful CI/CD pipeline.\nSometimes the job is convincing a 15-year-old Linux server to survive one more migration without throwing itself dramatically onto the floor.\nAnd when it finally boots, you do what every experienced infrastructure engineer does.\nYou validate everything.\nYou update your notes.\nYou keep the rollback plan handy.\nAnd you do not tell management it was easy.\nBecause it was not easy.\nYou just made it look that way.\nQuick Command Reference For the impatient future version of me:\n# From rescue shell lvm pvscan lvm vgscan lvm vgchange -ay lvs mkdir -p /mnt/sysimage mount /dev/vg00/lv00 /mnt/sysimage mkdir -p /mnt/sysimage/boot mount /dev/sda1 /mnt/sysimage/boot mount -o bind /dev /mnt/sysimage/dev mount -o bind /proc /mnt/sysimage/proc mount -o bind /sys /mnt/sysimage/sys chroot /mnt/sysimage ls -1 /lib/modules ls -1 /boot/vmlinuz-* grep \"^kernel\" /boot/grub/grub.conf vi /boot/grub/grub.conf mkinitrd -f \\ --with=hv_vmbus \\ --with=hv_storvsc \\ --with=hv_netvsc \\ /boot/initrd-2.6.18-440.el5.img \\ 2.6.18-440.el5 ls -lh /boot/initrd-2.6.18-440.el5.img exit umount /mnt/sysimage/sys umount /mnt/sysimage/proc umount /mnt/sysimage/dev umount /mnt/sysimage/boot umount /mnt/sysimage reboot About Ops Under Pressure Ops Under Pressure is a collection of real-world infrastructure stories, troubleshooting adventures, automation projects, and lessons learned from the trenches of enterprise IT.\nBecause the most interesting part of the job starts right after someone says:\nThis should be easy.\n",
+  "wordCount" : "1869",
+  "inLanguage": "en",
+  "datePublished": "2026-06-04T12:00:00-07:00",
+  "dateModified": "2026-06-04T12:00:00-07:00",
+  "author":{
+    "@type": "Person",
+    "name": "Claudio Lombardo"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Ops Under Pressure",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://opsunderpressure.xyz/favicon.ico"
+    }
+  }
+}
 </script>
 </head>
 <body id="top">
     <header class="header">
     <nav class="header-nav">
         <div class="logo">
-            <a href="http://localhost:1313/" accesskey="h" title="Ops Under Pressure (Alt + H)">Ops Under Pressure</a>
+            <a href="https://opsunderpressure.xyz/" accesskey="h" title="Ops Under Pressure (Alt + H)">Ops Under Pressure</a>
             <div class="logo-switches">
                 <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
@@ -96,12 +169,12 @@
         </div>
         <ul id="menu" class="menu">
             <li>
-                <a href="http://localhost:1313/posts/" title="Posts">
+                <a href="https://opsunderpressure.xyz/posts/" title="Posts">
                     <span>Posts</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/about/" title="About">
+                <a href="https://opsunderpressure.xyz/about/" title="About">
                     <span>About</span>
                 </a>
             </li>
@@ -501,22 +574,28 @@
 
   <footer class="post-footer">
     <ul class="post-tags">
-      <li><a href="http://localhost:1313/tags/rhel5/">Rhel5</a></li>
-      <li><a href="http://localhost:1313/tags/hyper-v/">Hyper-V</a></li>
-      <li><a href="http://localhost:1313/tags/linux/">Linux</a></li>
-      <li><a href="http://localhost:1313/tags/migration/">Migration</a></li>
-      <li><a href="http://localhost:1313/tags/virtualization/">Virtualization</a></li>
-      <li><a href="http://localhost:1313/tags/lvm/">Lvm</a></li>
-      <li><a href="http://localhost:1313/tags/grub/">Grub</a></li>
-      <li><a href="http://localhost:1313/tags/sysadmin/">Sysadmin</a></li>
-      <li><a href="http://localhost:1313/tags/infrastructure/">Infrastructure</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/rhel5/">Rhel5</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/hyper-v/">Hyper-V</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/linux/">Linux</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/migration/">Migration</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/virtualization/">Virtualization</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/lvm/">Lvm</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/grub/">Grub</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/sysadmin/">Sysadmin</a></li>
+      <li><a href="https://opsunderpressure.xyz/tags/infrastructure/">Infrastructure</a></li>
     </ul>
+<nav class="paginav">
+  <a class="prev" href="https://opsunderpressure.xyz/posts/architecting-sap-hana-high-availability-on-aws-full/">
+    <span class="title">« Prev</span>
+    <span>Architecting SAP HANA High Availability on AWS</span>
+  </a>
+</nav>
 
 
 <ul class="share-buttons">
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on x"
-            href="https://x.com/intent/tweet/?text=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;url=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f&amp;hashtags=rhel5%2chyper-v%2clinux%2cmigration%2cvirtualization%2clvm%2cgrub%2csysadmin%2cinfrastructure">
+            href="https://x.com/intent/tweet/?text=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f&amp;hashtags=rhel5%2chyper-v%2clinux%2cmigration%2cvirtualization%2clvm%2cgrub%2csysadmin%2cinfrastructure">
             <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
                 <path
                     d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
@@ -525,7 +604,7 @@
     </li>
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on linkedin"
-            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f&amp;title=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;summary=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;source=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f&amp;title=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;summary=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;source=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
             <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
                 <path
                     d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
@@ -534,7 +613,7 @@
     </li>
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on reddit"
-            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f&title=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode">
+            href="https://reddit.com/submit?url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f&title=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode">
             <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
                 <path
                     d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
@@ -543,7 +622,7 @@
     </li>
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on facebook"
-            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
+            href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
             <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
                 <path
                     d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
@@ -552,7 +631,7 @@
     </li>
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on whatsapp"
-            href="https://api.whatsapp.com/send?text=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode%20-%20http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
+            href="https://api.whatsapp.com/send?text=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode%20-%20https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
             <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
                 <path
                     d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-58.673,127.703c-33.842,-33.881 -78.847,-52.548 -126.798,-52.568c-98.799,0 -179.21,80.405 -179.249,179.234c-0.013,31.593 8.241,62.428 23.927,89.612l-25.429,92.884l95.021,-24.925c26.181,14.28 55.659,21.807 85.658,21.816l0.074,0c98.789,0 179.206,-80.413 179.247,-179.243c0.018,-47.895 -18.61,-92.93 -52.451,-126.81Zm-126.797,275.782l-0.06,0c-26.734,-0.01 -52.954,-7.193 -75.828,-20.767l-5.441,-3.229l-56.386,14.792l15.05,-54.977l-3.542,-5.637c-14.913,-23.72 -22.791,-51.136 -22.779,-79.287c0.033,-82.142 66.867,-148.971 149.046,-148.971c39.793,0.014 77.199,15.531 105.329,43.692c28.128,28.16 43.609,65.592 43.594,105.4c-0.034,82.149 -66.866,148.983 -148.983,148.984Zm81.721,-111.581c-4.479,-2.242 -26.499,-13.075 -30.604,-14.571c-4.105,-1.495 -7.091,-2.241 -10.077,2.241c-2.986,4.483 -11.569,14.572 -14.182,17.562c-2.612,2.988 -5.225,3.364 -9.703,1.12c-4.479,-2.241 -18.91,-6.97 -36.017,-22.23c-13.314,-11.876 -22.304,-26.542 -24.916,-31.026c-2.612,-4.484 -0.279,-6.908 1.963,-9.14c2.016,-2.007 4.48,-5.232 6.719,-7.847c2.24,-2.615 2.986,-4.484 4.479,-7.472c1.493,-2.99 0.747,-5.604 -0.374,-7.846c-1.119,-2.241 -10.077,-24.288 -13.809,-33.256c-3.635,-8.733 -7.327,-7.55 -10.077,-7.688c-2.609,-0.13 -5.598,-0.158 -8.583,-0.158c-2.986,0 -7.839,1.121 -11.944,5.604c-4.105,4.484 -15.675,15.32 -15.675,37.364c0,22.046 16.048,43.342 18.287,46.332c2.24,2.99 31.582,48.227 76.511,67.627c10.685,4.615 19.028,7.371 25.533,9.434c10.728,3.41 20.492,2.929 28.209,1.775c8.605,-1.285 26.499,-10.833 30.231,-21.295c3.732,-10.464 3.732,-19.431 2.612,-21.298c-1.119,-1.869 -4.105,-2.99 -8.583,-5.232Z" />
@@ -561,7 +640,7 @@
     </li>
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on telegram"
-            href="https://telegram.me/share/url?text=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;url=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
+            href="https://telegram.me/share/url?text=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&amp;url=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
             <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
                 <path
                     d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
@@ -570,7 +649,7 @@
     </li>
     <li>
         <a target="_blank" rel="noopener noreferrer" aria-label="share The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode on ycombinator"
-            href="https://news.ycombinator.com/submitlink?t=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&u=http%3a%2f%2flocalhost%3a1313%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
+            href="https://news.ycombinator.com/submitlink?t=The%20RHEL%205%20Hyper-V%20Migration%20That%20Booted%20Straight%20Into%20Rescue%20Mode&u=https%3a%2f%2fopsunderpressure.xyz%2fposts%2fmigrating-rhel5-to-hyperv-without-losing-your-mind%2f">
             <svg version="1.1" xml:space="preserve" width="30px" height="30px" viewBox="0 0 512 512" fill="currentColor"
                 xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
                 <path
@@ -585,7 +664,7 @@
     </main>
     
 <footer class="footer">
-        <span>&copy; 2026 <a href="http://localhost:1313/">Ops Under Pressure</a></span> · 
+        <span>&copy; 2026 <a href="https://opsunderpressure.xyz/">Ops Under Pressure</a></span> · 
 
     
     
