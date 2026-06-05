@@ -6,15 +6,8 @@
     <description>Recent content in Posts on Ops Under Pressure</description>
     <generator>Hugo</generator>
     <language>en-US</language>
-    <lastBuildDate>Fri, 05 Jun 2026 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 04 Jun 2026 12:00:00 -0700</lastBuildDate>
     <atom:link href="https://opsunderpressure.xyz/posts/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Architecting SAP HANA High Availability on AWS</title>
-      <link>https://opsunderpressure.xyz/posts/architecting-sap-hana-high-availability-on-aws-full/</link>
-      <pubDate>Fri, 05 Jun 2026 00:00:00 +0000</pubDate>
-      <guid>https://opsunderpressure.xyz/posts/architecting-sap-hana-high-availability-on-aws-full/</guid>
-      <description>Building a production-ready SAP HANA cluster using Pacemaker, AWS-integrated STONITH fencing, overlay IPs, quorum devices, and preload readiness validation.</description>
-    </item>
     <item>
       <title>The RHEL 5 Hyper-V Migration That Booted Straight Into Rescue Mode</title>
       <link>https://opsunderpressure.xyz/posts/migrating-rhel5-to-hyperv-without-losing-your-mind/</link>
