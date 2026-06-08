@@ -1,6 +1,7 @@
 ---
 title: "SAP HANA High Availability on AWS with Pacemaker"
 date: 2026-06-05
+weight: 1
 draft: false
 description: "A complete, sanitized, practical guide for building a SAP HANA High Availability cluster on AWS using Pacemaker, STONITH, overlay IPs, quorum devices, SAPHanaSR hooks, and preload readiness validation."
 tags:
