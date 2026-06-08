@@ -21,6 +21,7 @@ cover:
   image: "/images/ami-refresh-factory/ami-refresh-architecture.png"
   alt: "AMI refresh automation architecture"
   caption: "Monthly AMI refresh pipeline using EventBridge, Lambda, EC2 Image Builder, Launch Templates, and Auto Scaling warm pools."
+  hiddenInList: true
 ---
 
 ## The Problem: Autoscaling Was Working, But It Was Not Fast
