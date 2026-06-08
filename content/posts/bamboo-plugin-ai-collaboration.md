@@ -290,7 +290,7 @@ No rebuilding hundreds of pipelines.
 
 No emergency project consuming months of engineering time.
 
-According to Sven and Long, avoiding manual plan rewrites saved hundreds of engineering hours for their team alone, not counting every other Bamboo user across the organization.
+According to the Build and Release Services team, avoiding manual plan rewrites saved hundreds of engineering hours for their team alone, not counting every other Bamboo user across the organization.
 
 The project passed security review and is now being used in production.
 
