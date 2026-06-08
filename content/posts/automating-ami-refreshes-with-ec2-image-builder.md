@@ -1,5 +1,6 @@
 ---
-title: "Automating AMI Refreshes Without Babysitting Golden Images"
+title: "Why Are Your Autoscaled Instances Taking 20 Minutes to Boot?"
+subtitle: "Building a Self-Updating Golden Image Factory in AWS"
 date: 2026-06-08T09:00:00-07:00
 draft: false
 tags:
